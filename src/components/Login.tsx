@@ -1,40 +1,37 @@
 import { useState } from 'react';
-import { getAuth, setAuth, checkLogin, setGhToken, getGhToken } from '../lib/auth';
+import { setToken, getToken } from '../lib/auth';
+import { loginWithToken } from '../lib/github-db';
+import type { DbData } from '../lib/github-db';
 
 interface Props {
-  onLogin: () => void;
+  onLogin: (username: string, data: DbData) => void;
 }
 
 export default function Login({ onLogin }: Props) {
-  const hasAcc = !!getAuth();
-  const [mode, setMode] = useState<'login' | 'setup'>(hasAcc ? 'login' : 'setup');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [password2, setPassword2] = useState('');
-  const [token, setToken] = useState(hasAcc ? (getGhToken() || '') : '');
-  const [error, setError] = useState('');
-  const [showPw, setShowPw] = useState(false);
+  const [token, setTokenInput] = useState('');
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
-
-  function handleSetup() {
-    if (!username.trim()) { setError('Username tidak boleh kosong'); return; }
-    if (password.length < 4) { setError('Password minimal 4 karakter'); return; }
-    if (password !== password2) { setError('Konfirmasi password tidak cocok'); return; }
-    setAuth({ username: username.trim(), password });
-    if (token.trim()) setGhToken(token.trim());
-    onLogin();
-  }
+  const [error, setError] = useState('');
 
   async function handleLogin() {
-    if (!username.trim() || !password) { setError('Isi username dan password'); return; }
+    const t = token.trim();
+    if (!t) { setError('Masukkan GitHub Personal Access Token'); return; }
+    if (!t.startsWith('gh')) { setError('Token harus dimulai dengan "ghp_" atau "github_pat_"'); return; }
+
     setLoading(true);
     setError('');
-    await new Promise(r => setTimeout(r, 300));
-    if (checkLogin(username.trim(), password)) {
-      onLogin();
-    } else {
-      setError('Username atau password salah');
+
+    if (remember) setToken(t);
+    else setToken(t);
+
+    const result = await loginWithToken(t);
+    if (!result) {
+      setError('Token tidak valid atau tidak punya akses. Coba buat token baru.');
+      setLoading(false);
+      return;
     }
+
+    onLogin(result.username, result.data);
     setLoading(false);
   }
 
@@ -44,96 +41,71 @@ export default function Login({ onLogin }: Props) {
         <div className="login-brand">Ad<span>Journal</span></div>
         <div className="login-subtitle">Paid Traffic &amp; Adsense Tracker</div>
 
-        <div className="login-tabs">
-          {hasAcc && (
-            <>
-              <button className={`login-tab${mode === 'login' ? ' active' : ''}`} onClick={() => { setMode('login'); setError(''); }}>Masuk</button>
-              <button className={`login-tab${mode === 'setup' ? ' active' : ''}`} onClick={() => { setMode('setup'); setError(''); }}>Ganti Akun</button>
-            </>
-          )}
+        <div className="login-gh-badge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          Masuk dengan GitHub Token
         </div>
 
         <div className="login-form">
-          {mode === 'setup' && !hasAcc && (
-            <div className="login-welcome">
-              <div className="login-welcome-title">Selamat Datang!</div>
-              <div className="login-welcome-sub">Buat akun pertama kamu untuk memulai</div>
-            </div>
-          )}
-
-          <div className="fg">
-            <label>Username</label>
-            <input
-              type="text"
-              placeholder="Masukkan username"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (mode === 'login' ? handleLogin() : null)}
-              autoComplete="username"
-            />
+          <div className="login-info-box">
+            <div className="login-info-title">Cara mendapatkan token:</div>
+            <ol className="login-info-steps">
+              <li>Buka <strong>github.com</strong> → Settings</li>
+              <li>Developer settings → Personal access tokens → Tokens (classic)</li>
+              <li>Generate new token → centang <strong>gist</strong></li>
+              <li>Copy token dan paste di sini</li>
+            </ol>
           </div>
 
-          <div className="fg" style={{ position: 'relative' }}>
-            <label>Password</label>
-            <input
-              type={showPw ? 'text' : 'password'}
-              placeholder="Masukkan password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (mode === 'login' ? handleLogin() : null)}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              style={{ paddingRight: 44 }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw(v => !v)}
-              style={{ position: 'absolute', right: 10, top: 28, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', padding: 4 }}
-            >
-              {showPw ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
-              )}
-            </button>
-          </div>
-
-          {mode === 'setup' && (
-            <div className="fg">
-              <label>Konfirmasi Password</label>
-              <input
-                type={showPw ? 'text' : 'password'}
-                placeholder="Ulangi password"
-                value={password2}
-                onChange={e => setPassword2(e.target.value)}
-                autoComplete="new-password"
-              />
-            </div>
-          )}
-
           <div className="fg">
-            <label>GitHub Token <span style={{ color: 'var(--t3)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(untuk sync database - opsional)</span></label>
+            <label>GitHub Personal Access Token</label>
             <input
               type="password"
-              placeholder="ghp_xxxxx"
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
               value={token}
-              onChange={e => setToken(e.target.value)}
+              onChange={e => { setTokenInput(e.target.value); setError(''); }}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              autoComplete="off"
+              spellCheck={false}
             />
-            <span style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2 }}>Data akan disimpan di GitHub Gist pribadi kamu (terenkripsi, private)</span>
           </div>
+
+          <label className="login-remember">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={e => setRemember(e.target.checked)}
+            />
+            <span>Ingat token di browser ini</span>
+            <span className="login-remember-sub">(tersimpan di localStorage)</span>
+          </label>
 
           {error && <div className="login-error">{error}</div>}
 
           <button
             className="btn-primary"
-            style={{ width: '100%', justifyContent: 'center', height: 44, fontSize: 14, marginTop: 4 }}
-            onClick={mode === 'login' ? handleLogin : handleSetup}
+            style={{ width: '100%', justifyContent: 'center', height: 44, fontSize: 14 }}
+            onClick={handleLogin}
             disabled={loading}
           >
-            {loading ? 'Memverifikasi...' : mode === 'login' ? 'Masuk' : 'Buat Akun & Mulai'}
+            {loading ? (
+              <>
+                <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                Menghubungkan ke GitHub...
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                Masuk dengan GitHub
+              </>
+            )}
           </button>
         </div>
 
-        <div className="login-footer">Data tersimpan aman di browser &amp; GitHub Gist kamu</div>
+        <div className="login-footer">
+          Semua data disimpan di <strong>GitHub Gist</strong> (private) milik kamu.<br/>
+          Tidak ada server pihak ketiga yang menyimpan datamu.
+        </div>
       </div>
     </div>
   );
