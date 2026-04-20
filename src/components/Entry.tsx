@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Campaign, Entry } from '../lib/storage';
-import { calcProfit, calcROI, fRp, fPct, todayStr } from '../lib/helpers';
+import { calcROI, fRp, fPct, todayStr } from '../lib/helpers';
 import { fetchUsdToIdr, getCachedRate, usdToIdr, formatRate, getRateSource } from '../lib/currency';
 
 interface Props {
@@ -15,12 +15,11 @@ interface Props {
 export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onSave, onCancel, onGoToCampaigns }: Props) {
   const [campaignId, setCampaignId] = useState('');
   const [date, setDate] = useState(todayStr());
-  const [spend, setSpend] = useState('');
   const [spendUsd, setSpendUsd] = useState('');
+  const [spend, setSpend] = useState('');
   const [adclicks, setAdclicks] = useState('');
   const [impressions, setImpressions] = useState('');
   const [revenue, setRevenue] = useState('');
-  const [revenueUsd, setRevenueUsd] = useState('');
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState('');
   const [roiPreview, setRoiPreview] = useState('');
@@ -37,12 +36,11 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
       setCampaignId(String(editEntry.campaignId || ''));
       setDate(editEntry.date);
       setSpend(String(editEntry.spend || ''));
+      setSpendUsd('');
       setAdclicks(String(editEntry.adclicks || ''));
       setImpressions(String(editEntry.impressions || ''));
       setRevenue(String(editEntry.revenue || ''));
       setNote(editEntry.note || '');
-      setSpendUsd('');
-      setRevenueUsd('');
     } else if (!editEntry) {
       initialized.current = false;
       if (prefillCampaignId) {
@@ -63,14 +61,9 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
     }
   }
 
-  function handleRevenueUsd(v: string) {
-    setRevenueUsd(v);
-    const usd = parseFloat(v);
-    if (!isNaN(usd) && usd > 0) {
-      setRevenue(String(usdToIdr(usd, usdRate)));
-    } else if (!v) {
-      setRevenue('');
-    }
+  function handleSpendIdr(v: string) {
+    setSpend(v);
+    setSpendUsd('');
   }
 
   function handleSave() {
@@ -93,7 +86,7 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
     setTimeout(() => { setMsg(''); setRoiPreview(''); }, 4000);
     if (!editEntry) {
       setSpend(''); setSpendUsd(''); setAdclicks(''); setImpressions('');
-      setRevenue(''); setRevenueUsd(''); setNote('');
+      setRevenue(''); setNote('');
       setDate(todayStr());
     }
   }
@@ -101,6 +94,9 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
   const rateLabel = formatRate(usdRate);
   const rateSource = getRateSource();
   const isEdit = !!editEntry;
+  const spendIdrAuto = spendUsd && parseFloat(spendUsd) > 0
+    ? usdToIdr(parseFloat(spendUsd), usdRate)
+    : null;
 
   return (
     <div className="page">
@@ -127,7 +123,7 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
               <div className="edit-banner">Mode edit — kamu sedang mengubah data yang sudah ada</div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
+            <div className="entry-top-grid">
               <div className="fg">
                 <label>Campaign</label>
                 <select value={campaignId} onChange={e => setCampaignId(e.target.value)}>
@@ -143,82 +139,85 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
               </div>
             </div>
 
-            {/* ADS Section */}
+            {/* ADS Section — 3 columns */}
             <div className="form-section">
-              <span className="form-section-label ads-label">
-                <svg style={{ width: 11, height: 11, stroke: 'currentColor', fill: 'none', strokeWidth: 2, verticalAlign: 'middle', marginRight: 5 }} viewBox="0 0 24 24"><path d="M3 3h18v4H3z" /><path d="M3 10h11v4H3z" /></svg>
-                Data ADS
-              </span>
-              <div className="form-grid-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                <span className="form-section-label ads-label" style={{ margin: 0 }}>
+                  <svg style={{ width: 11, height: 11, stroke: 'currentColor', fill: 'none', strokeWidth: 2, verticalAlign: 'middle', marginRight: 5 }} viewBox="0 0 24 24"><path d="M3 3h18v4H3z" /><path d="M3 10h11v4H3z" /></svg>
+                  Data ADS
+                </span>
+                <span className="rate-inline-badge">
+                  {rateLabel}
+                  <span className="rate-inline-src"> · {rateSource}</span>
+                </span>
+              </div>
+
+              <div className="ads-3col">
+                {/* Col 1: SPEND USD */}
                 <div className="fg">
-                  <label>Spend ADS (Rp)</label>
-                  <input type="number" placeholder="0" min="0" value={spend} onChange={e => { setSpend(e.target.value); setSpendUsd(''); }} />
-                  {/* USD converter */}
-                  <div className="usd-row">
-                    <div className="usd-input-wrap">
-                      <span className="usd-prefix">$</span>
-                      <input
-                        type="number"
-                        placeholder="Input USD (auto-konversi)"
-                        min="0"
-                        step="0.01"
-                        value={spendUsd}
-                        onChange={e => handleSpendUsd(e.target.value)}
-                        style={{ paddingLeft: 32, background: 'rgba(255,170,0,0.04)', borderColor: 'rgba(255,170,0,0.2)', color: 'var(--a)' }}
-                      />
-                    </div>
-                    <span className="usd-arrow">→</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
-                      <span className="usd-rate-badge">{rateLabel}</span>
-                      <span style={{ fontSize: 9, color: 'var(--t3)', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace' }}>
-                        🔄 Otomatis · {rateSource}
-                      </span>
-                    </div>
+                  <label style={{ color: 'var(--a)' }}>Spend ADS (USD)</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, fontWeight: 700, color: 'var(--a)', fontFamily: 'JetBrains Mono, monospace', pointerEvents: 'none' }}>$</span>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      value={spendUsd}
+                      onChange={e => handleSpendUsd(e.target.value)}
+                      style={{ paddingLeft: 28, background: 'rgba(255,170,0,0.06)', borderColor: 'rgba(255,170,0,0.25)', color: 'var(--a)' }}
+                    />
                   </div>
                 </div>
+
+                {/* Col 2: SPEND IDR (auto or manual) */}
+                <div className="fg">
+                  <label>
+                    Spend ADS (Rp)
+                    {spendIdrAuto && <span style={{ marginLeft: 6, fontSize: 9, color: 'var(--a)', background: 'rgba(255,170,0,0.1)', padding: '1px 6px', borderRadius: 100, border: '1px solid rgba(255,170,0,0.2)', verticalAlign: 'middle' }}>AUTO</span>}
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    value={spend}
+                    onChange={e => handleSpendIdr(e.target.value)}
+                  />
+                  {spendIdrAuto && (
+                    <span style={{ fontSize: 10, color: 'var(--a)', marginTop: 3, fontFamily: 'JetBrains Mono, monospace' }}>
+                      = Rp {spendIdrAuto.toLocaleString('id-ID')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Col 3: KLIK ADS */}
                 <div className="fg">
                   <label>Klik ADS</label>
-                  <input type="number" placeholder="0" min="0" value={adclicks} onChange={e => setAdclicks(e.target.value)} />
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    value={adclicks}
+                    onChange={e => setAdclicks(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* ADSENSE Section */}
+            {/* ADSENSE Section — IDR only */}
             <div className="form-section">
-              <span className="form-section-label adsense-label">
+              <span className="form-section-label adsense-label" style={{ marginBottom: 12, display: 'inline-block' }}>
                 <svg style={{ width: 11, height: 11, stroke: 'currentColor', fill: 'none', strokeWidth: 2, verticalAlign: 'middle', marginRight: 5 }} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
                 Data ADSENSE
               </span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="adsense-2col">
                 <div className="fg">
                   <label>Tayangan Adsense</label>
                   <input type="number" placeholder="0" min="0" value={impressions} onChange={e => setImpressions(e.target.value)} />
                 </div>
                 <div className="fg">
                   <label>Penghasilan Adsense (Rp)</label>
-                  <input type="number" placeholder="0" min="0" value={revenue} onChange={e => { setRevenue(e.target.value); setRevenueUsd(''); }} />
-                  {/* USD converter */}
-                  <div className="usd-row">
-                    <div className="usd-input-wrap">
-                      <span className="usd-prefix">$</span>
-                      <input
-                        type="number"
-                        placeholder="Input USD (auto-konversi)"
-                        min="0"
-                        step="0.01"
-                        value={revenueUsd}
-                        onChange={e => handleRevenueUsd(e.target.value)}
-                        style={{ paddingLeft: 32, background: 'rgba(255,170,0,0.04)', borderColor: 'rgba(255,170,0,0.2)', color: 'var(--a)' }}
-                      />
-                    </div>
-                    <span className="usd-arrow">→</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
-                      <span className="usd-rate-badge">{rateLabel}</span>
-                      <span style={{ fontSize: 9, color: 'var(--t3)', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace' }}>
-                        🔄 Otomatis · {rateSource}
-                      </span>
-                    </div>
-                  </div>
+                  <input type="number" placeholder="0" min="0" value={revenue} onChange={e => setRevenue(e.target.value)} />
                 </div>
               </div>
             </div>
