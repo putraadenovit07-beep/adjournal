@@ -25,16 +25,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Build for GitHub Pages
-        run: pnpm exec vite build --config vite.pages.config.ts
+        run: npm run build:pages
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
