@@ -183,11 +183,6 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
                     value={spend}
                     onChange={e => handleSpendIdr(e.target.value)}
                   />
-                  {spendIdrAuto && (
-                    <span style={{ fontSize: 10, color: 'var(--a)', marginTop: 3, fontFamily: 'JetBrains Mono, monospace' }}>
-                      = Rp {spendIdrAuto.toLocaleString('id-ID')}
-                    </span>
-                  )}
                 </div>
 
                 {/* Col 3: KLIK ADS */}
