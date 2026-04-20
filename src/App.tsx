@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, type ReactNode } from 'react';
 import './index.css';
 import {
   loadCampaigns, saveCampaigns, loadEntries, saveEntries, loadGoals, saveGoals,
@@ -84,7 +84,7 @@ export default function App() {
     goTo('journal');
   }
 
-  const navItems: { id: Page; label: string; icon: React.ReactNode }[] = [
+  const navItems: { id: Page; label: string; icon: ReactNode }[] = [
     {
       id: 'dashboard', label: 'Dasbor',
       icon: <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
@@ -115,7 +115,9 @@ export default function App() {
     <>
       <div className="topbar">
         <div className="brand">Ad<span>Journal</span></div>
-        <div className="topbar-info">{formatDate()}</div>
+        <div className="topbar-info" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span>{formatDate()}</span>
+        </div>
       </div>
 
       {page === 'dashboard' && (
