@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Campaign, Entry } from '../lib/storage';
 import { calcProfit, calcROI, fRp, fPct, todayStr } from '../lib/helpers';
-import { fetchUsdToIdr, getCachedRate, usdToIdr, formatRate } from '../lib/currency';
+import { fetchUsdToIdr, getCachedRate, usdToIdr, formatRate, getRateSource } from '../lib/currency';
 
 interface Props {
   campaigns: Campaign[];
@@ -99,6 +99,7 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
   }
 
   const rateLabel = formatRate(usdRate);
+  const rateSource = getRateSource();
   const isEdit = !!editEntry;
 
   return (
@@ -167,7 +168,12 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
                       />
                     </div>
                     <span className="usd-arrow">→</span>
-                    <span className="usd-rate-badge">{rateLabel}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+                      <span className="usd-rate-badge">{rateLabel}</span>
+                      <span style={{ fontSize: 9, color: 'var(--t3)', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace' }}>
+                        🔄 Otomatis · {rateSource}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="fg">
@@ -206,7 +212,12 @@ export default function EntryForm({ campaigns, editEntry, prefillCampaignId, onS
                       />
                     </div>
                     <span className="usd-arrow">→</span>
-                    <span className="usd-rate-badge">{rateLabel}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+                      <span className="usd-rate-badge">{rateLabel}</span>
+                      <span style={{ fontSize: 9, color: 'var(--t3)', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace' }}>
+                        🔄 Otomatis · {rateSource}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

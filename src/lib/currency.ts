@@ -48,3 +48,15 @@ export function usdToIdr(usd: number, rate: number): number {
 export function formatRate(rate: number): string {
   return `1 USD = Rp ${rate.toLocaleString('id-ID')}`;
 }
+
+export function getRateSource(): string {
+  try {
+    const cached = localStorage.getItem(RATE_CACHE_KEY);
+    if (cached) {
+      const parsed: RateCache = JSON.parse(cached);
+      const ageMin = Math.round((Date.now() - parsed.ts) / 60000);
+      return ageMin < 60 ? `Live · ${ageMin}m lalu` : 'Fallback';
+    }
+  } catch {}
+  return 'Loading…';
+}
