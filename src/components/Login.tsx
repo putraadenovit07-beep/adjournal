@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { setToken, getToken } from '../lib/auth';
+import { setToken } from '../lib/auth';
 import { loginWithToken } from '../lib/github-db';
-import type { DbData } from '../lib/github-db';
+import type { GistData } from '../lib/github-db';
 
 interface Props {
-  onLogin: (username: string, data: DbData) => void;
+  onLogin: (username: string, data: GistData) => void;
 }
 
 export default function Login({ onLogin }: Props) {
@@ -22,16 +22,15 @@ export default function Login({ onLogin }: Props) {
     setError('');
 
     if (remember) setToken(t);
-    else setToken(t);
 
     const result = await loginWithToken(t);
     if (!result) {
-      setError('Token tidak valid atau tidak punya akses. Coba buat token baru.');
+      setError('Token tidak valid atau tidak punya akses Gist. Coba buat token baru.');
       setLoading(false);
       return;
     }
 
-    onLogin(result.username, result.data);
+    onLogin(result.username, result.gistData);
     setLoading(false);
   }
 

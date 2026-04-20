@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import './index.css';
 import type { Campaign, Entry, Goals } from './lib/storage';
 import { formatDate } from './lib/helpers';
-import { getToken, clearToken, getUsername } from './lib/auth';
-import { writeDb, loginWithToken, EMPTY_DB } from './lib/github-db';
-import type { DbData } from './lib/github-db';
+import { getToken, clearToken, getUsername, getLastProfile, setLastProfile } from './lib/auth';
+import { writeDb, loginWithToken, EMPTY_PROFILE } from './lib/github-db';
+import type { GistData, ProfileData } from './lib/github-db';
 import Login from './components/Login';
+import ProfileSelect from './components/ProfileSelect';
 import Dashboard from './components/Dashboard';
 import Campaigns from './components/Campaigns';
 import EntryForm from './components/Entry';
@@ -18,8 +19,12 @@ type Page = 'dashboard' | 'campaigns' | 'entry' | 'journal' | 'goals' | 'analyti
 const EMPTY_GOALS: Goals = { modal: 0, start: '', milestones: [], locked: false };
 
 export default function App() {
-  const [username, setUsername] = useState<string>('');
-  const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [username, setUsername] = useState('');
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  // Multi-profile
+  const [gistData, setGistData] = useState<GistData | null>(null);
+  const [activeProfile, setActiveProfile] = useState<string | null>(null);
 
   const [page, setPage] = useState<Page>('dashboard');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -39,10 +44,16 @@ export default function App() {
     loginWithToken(token).then(result => {
       if (result) {
         setUsername(result.username);
-        loadData(result.data);
+        setGistData(result.gistData);
         setLoggedIn(true);
         setSyncStatus('ok');
         setTimeout(() => setSyncStatus('idle'), 2000);
+        // Auto-select last profile if it still exists
+        const last = getLastProfile();
+        if (last && result.gistData.profiles[last]) {
+          setActiveProfile(last);
+          loadProfileData(result.gistData.profiles[last]);
+        }
       } else {
         clearToken();
         setSyncStatus('idle');
@@ -51,31 +62,60 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function loadData(data: DbData) {
-    setCampaigns(data.campaigns || []);
-    setEntries(data.entries || []);
-    setGoals(data.goals || EMPTY_GOALS);
+  function loadProfileData(profileData: ProfileData) {
+    setCampaigns(profileData.campaigns || []);
+    setEntries(profileData.entries || []);
+    setGoals(profileData.goals || EMPTY_GOALS);
   }
 
-  function handleLogin(user: string, data: DbData) {
+  function handleLogin(user: string, data: GistData) {
     setUsername(user);
-    loadData(data);
+    setGistData(data);
     setLoggedIn(true);
+  }
+
+  function handleSelectProfile(profileName: string, profileData: ProfileData, updatedGist: GistData) {
+    setGistData(updatedGist);
+    setActiveProfile(profileName);
+    setLastProfile(profileName);
+    loadProfileData(profileData);
+    // If this was a newly created profile, write it to Gist
+    if (!gistData?.profiles[profileName]) {
+      writeDb(updatedGist).catch(() => {});
+    }
+  }
+
+  function handleBackToProfiles() {
+    setActiveProfile(null);
+    setEditEntry(null);
+    setPrefillCampaignId(null);
+    setPage('dashboard');
   }
 
   function handleLogout() {
     clearToken();
     setLoggedIn(false);
     setUsername('');
+    setGistData(null);
+    setActiveProfile(null);
     setCampaigns([]);
     setEntries([]);
     setGoals(EMPTY_GOALS);
   }
 
-  const syncDb = useCallback(async (cams: Campaign[], ents: Entry[], gls: Goals) => {
+  const syncDb = useCallback(async (cams: Campaign[], ents: Entry[], gls: Goals, currentGist: GistData, profile: string) => {
     setSyncStatus('syncing');
     try {
-      await writeDb({ campaigns: cams, entries: ents, goals: gls, version: Date.now() });
+      const updated: GistData = {
+        ...currentGist,
+        profiles: {
+          ...currentGist.profiles,
+          [profile]: { campaigns: cams, entries: ents, goals: gls }
+        },
+        version: Date.now(),
+      };
+      setGistData(updated);
+      await writeDb(updated);
       setSyncStatus('ok');
       setTimeout(() => setSyncStatus('idle'), 2000);
     } catch {
@@ -93,7 +133,7 @@ export default function App() {
     const cp: Campaign = { id: Date.now(), ...data };
     const updated = [cp, ...campaigns];
     setCampaigns(updated);
-    syncDb(updated, entries, goals);
+    syncDb(updated, entries, goals, gistData!, activeProfile!);
   }
 
   function deleteCampaign(id: number) {
@@ -101,7 +141,7 @@ export default function App() {
     const newEntries = entries.filter(e => e.campaignId !== id);
     setCampaigns(newCampaigns);
     setEntries(newEntries);
-    syncDb(newCampaigns, newEntries, goals);
+    syncDb(newCampaigns, newEntries, goals, gistData!, activeProfile!);
   }
 
   function handleSaveEntry(data: Omit<Entry, 'id'>, editId?: number) {
@@ -113,13 +153,13 @@ export default function App() {
       updated = [{ id: Date.now(), ...data }, ...entries];
     }
     setEntries(updated);
-    syncDb(campaigns, updated, goals);
+    syncDb(campaigns, updated, goals, gistData!, activeProfile!);
   }
 
   function handleDeleteEntry(id: number) {
     const updated = entries.filter(e => e.id !== id);
     setEntries(updated);
-    syncDb(campaigns, updated, goals);
+    syncDb(campaigns, updated, goals, gistData!, activeProfile!);
   }
 
   function handleEditEntry(e: Entry) {
@@ -135,7 +175,7 @@ export default function App() {
 
   function handleSaveGoals(g: Goals) {
     setGoals(g);
-    syncDb(campaigns, entries, g);
+    syncDb(campaigns, entries, g, gistData!, activeProfile!);
   }
 
   function handleCancelEdit() {
@@ -157,10 +197,31 @@ export default function App() {
     return <Login onLogin={handleLogin} />;
   }
 
+  if (!activeProfile || !gistData) {
+    return (
+      <ProfileSelect
+        username={username}
+        gistData={gistData || { profiles: {}, version: 0 }}
+        onSelect={handleSelectProfile}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  const profileColor = getProfileColor(activeProfile);
+
   return (
     <>
       <div className="topbar">
-        <div className="brand">Ad<span>Journal</span></div>
+        <button className="topbar-profile-btn" onClick={handleBackToProfiles} title="Ganti akun">
+          <div className="topbar-profile-avatar" style={{ background: profileColor + '22', color: profileColor, borderColor: profileColor + '55' }}>
+            {activeProfile.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="topbar-profile-info">
+            <span className="topbar-profile-name">{activeProfile}</span>
+            <span className="topbar-profile-switch">Ganti akun</span>
+          </div>
+        </button>
         <div className="topbar-right">
           <span className={`sync-pill ${syncStatus}`} title="Status sync GitHub Gist">
             {syncStatus === 'syncing' && <svg className="spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>}
@@ -172,10 +233,6 @@ export default function App() {
             </span>
           </span>
           <span className="topbar-date">{formatDate()}</span>
-          <button className="topbar-logout" onClick={handleLogout} title="Keluar">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            <span className="topbar-logout-label">{username}</span>
-          </button>
         </div>
       </div>
 
@@ -202,4 +259,11 @@ export default function App() {
       </nav>
     </>
   );
+}
+
+const PROFILE_COLORS = ['#8b7cf8','#00d98b','#5b9ef9','#ffaa00','#ff4d6d','#38d9c0','#f97316','#a78bfa','#34d399','#60a5fa'];
+function getProfileColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return PROFILE_COLORS[Math.abs(hash) % PROFILE_COLORS.length];
 }

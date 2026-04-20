@@ -4,32 +4,34 @@ import type { Campaign, Entry, Goals } from './storage';
 const GIST_FILENAME = 'adjournal-data.json';
 const GIST_DESC = 'AdJournal Database';
 
-export interface DbData {
+export interface ProfileData {
   campaigns: Campaign[];
   entries: Entry[];
   goals: Goals;
+}
+
+export interface GistData {
+  profiles: Record<string, ProfileData>;
   version: number;
 }
 
 const EMPTY_GOALS: Goals = { modal: 0, start: '', milestones: [], locked: false };
 
-export const EMPTY_DB: DbData = {
+export const EMPTY_PROFILE: ProfileData = {
   campaigns: [],
   entries: [],
   goals: EMPTY_GOALS,
-  version: 0,
 };
 
+const EMPTY_GIST: GistData = { profiles: {}, version: 0 };
+
 function headers() {
+  const token = getToken();
   return {
-    'Authorization': `token ${getToken()}`,
+    'Authorization': `token ${token}`,
     'Accept': 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
   };
-}
-
-async function ghFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  return fetch(url, { ...options, headers: { ...headers(), ...(options.headers as Record<string,string> || {}) } });
 }
 
 export async function validateToken(token: string): Promise<string | null> {
@@ -43,20 +45,35 @@ export async function validateToken(token: string): Promise<string | null> {
   } catch { return null; }
 }
 
-async function fetchGistData(gistId: string): Promise<DbData | null> {
+async function fetchGist(gistId: string): Promise<GistData | null> {
   try {
-    const res = await ghFetch(`https://api.github.com/gists/${gistId}`);
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: headers() });
     if (!res.ok) return null;
     const json = await res.json();
     const file = json.files?.[GIST_FILENAME];
     if (!file?.content) return null;
-    return JSON.parse(file.content) as DbData;
+    const parsed = JSON.parse(file.content);
+    // Migrate old format (single profile) to new multi-profile format
+    if (parsed.campaigns && !parsed.profiles) {
+      return {
+        profiles: {
+          'Akun Utama': {
+            campaigns: parsed.campaigns || [],
+            entries: parsed.entries || [],
+            goals: parsed.goals || EMPTY_GOALS,
+          }
+        },
+        version: parsed.version || 0,
+      };
+    }
+    return parsed as GistData;
   } catch { return null; }
 }
 
-async function createGist(data: DbData): Promise<string> {
-  const res = await ghFetch('https://api.github.com/gists', {
+async function createGist(data: GistData): Promise<string> {
+  const res = await fetch('https://api.github.com/gists', {
     method: 'POST',
+    headers: headers(),
     body: JSON.stringify({
       description: GIST_DESC,
       public: false,
@@ -68,50 +85,47 @@ async function createGist(data: DbData): Promise<string> {
   return json.id as string;
 }
 
-export async function initDb(): Promise<DbData> {
+export async function initDb(): Promise<GistData> {
   const cachedId = getGistId();
-
   if (cachedId) {
-    const data = await fetchGistData(cachedId);
+    const data = await fetchGist(cachedId);
     if (data) return data;
   }
 
-  // Search for existing gist
+  // Search existing gist
   try {
-    const res = await ghFetch('https://api.github.com/gists?per_page=30');
+    const res = await fetch('https://api.github.com/gists?per_page=30', { headers: headers() });
     if (res.ok) {
       const gists = await res.json();
       const found = (gists as Array<{ id: string; description: string; files: Record<string, unknown> }>)
         .find(g => g.description === GIST_DESC && g.files[GIST_FILENAME]);
       if (found) {
         setGistId(found.id);
-        const data = await fetchGistData(found.id);
+        const data = await fetchGist(found.id);
         if (data) return data;
       }
     }
   } catch {}
 
-  // Create new gist
-  const newId = await createGist(EMPTY_DB);
+  const newId = await createGist(EMPTY_GIST);
   setGistId(newId);
-  return EMPTY_DB;
+  return EMPTY_GIST;
 }
 
-export async function writeDb(data: DbData): Promise<void> {
+export async function writeDb(data: GistData): Promise<void> {
   let gistId = getGistId();
   if (!gistId) {
     gistId = await createGist(data);
     setGistId(gistId);
     return;
   }
-
-  const res = await ghFetch(`https://api.github.com/gists/${gistId}`, {
+  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
     method: 'PATCH',
+    headers: headers(),
     body: JSON.stringify({
       files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } }
     })
   });
-
   if (!res.ok) {
     const err = await res.json();
     if ((err as { message?: string }).message?.includes('Not Found')) {
@@ -123,10 +137,10 @@ export async function writeDb(data: DbData): Promise<void> {
   }
 }
 
-export async function loginWithToken(token: string): Promise<{ username: string; data: DbData } | null> {
+export async function loginWithToken(token: string): Promise<{ username: string; gistData: GistData } | null> {
   const username = await validateToken(token);
   if (!username) return null;
   setUsername(username);
-  const data = await initDb();
-  return { username, data };
+  const gistData = await initDb();
+  return { username, gistData };
 }

@@ -1,6 +1,7 @@
 const TOKEN_KEY = 'adj_gh_token';
 const GIST_KEY = 'adj_gist_id';
 const USERNAME_KEY = 'adj_gh_user';
+const LAST_PROFILE_KEY = 'adj_last_profile';
 
 export function getToken(): string {
   return localStorage.getItem(TOKEN_KEY) || '';
@@ -14,6 +15,7 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(GIST_KEY);
   localStorage.removeItem(USERNAME_KEY);
+  localStorage.removeItem(LAST_PROFILE_KEY);
 }
 
 export function getGistId(): string {
@@ -30,4 +32,12 @@ export function getUsername(): string {
 
 export function setUsername(name: string): void {
   localStorage.setItem(USERNAME_KEY, name);
+}
+
+export function getLastProfile(): string {
+  return localStorage.getItem(LAST_PROFILE_KEY) || '';
+}
+
+export function setLastProfile(name: string): void {
+  localStorage.setItem(LAST_PROFILE_KEY, name);
 }
