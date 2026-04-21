@@ -11,10 +11,10 @@ import Dashboard from './components/Dashboard';
 import Campaigns from './components/Campaigns';
 import EntryForm from './components/Entry';
 import Journal from './components/Journal';
-import GoalsPage from './components/Goals';
+import ModalAwalPage from './components/ModalAwal';
 import Analytics from './components/Analytics';
 
-type Page = 'dashboard' | 'campaigns' | 'entry' | 'journal' | 'goals' | 'analytics';
+type Page = 'dashboard' | 'campaigns' | 'entry' | 'journal' | 'modal' | 'analytics';
 
 const EMPTY_GOALS: Goals = { modal: 0, start: '', milestones: [], locked: false };
 
@@ -189,7 +189,7 @@ export default function App() {
     { id: 'campaigns', label: 'Campaign', icon: <svg viewBox="0 0 24 24"><path d="M3 3h18v4H3z"/><path d="M3 10h11v4H3z"/><path d="M3 17h7v4H3z"/><circle cx="19" cy="19" r="3"/><line x1="17" y1="19" x2="21" y2="19"/><line x1="19" y1="17" x2="19" y2="21"/></svg> },
     { id: 'entry', label: 'Catat', icon: <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> },
     { id: 'journal', label: 'Jurnal', icon: <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg> },
-    { id: 'goals', label: 'Goals', icon: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
+    { id: 'modal', label: 'Modal', icon: <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/></svg> },
     { id: 'analytics', label: 'Analitik', icon: <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
   ];
 
@@ -242,14 +242,14 @@ export default function App() {
         <EntryForm campaigns={campaigns} editEntry={editEntry} prefillCampaignId={prefillCampaignId} onSave={handleSaveEntry} onCancel={handleCancelEdit} onGoToCampaigns={() => goTo('campaigns')} />
       )}
       {page === 'journal' && <Journal campaigns={campaigns} entries={entries} onEdit={handleEditEntry} onDelete={handleDeleteEntry} onQuickCatat={handleQuickCatat} onGoTo={goTo} />}
-      {page === 'goals' && <GoalsPage goals={goals} entries={entries} onSave={handleSaveGoals} />}
+      {page === 'modal' && <ModalAwalPage goals={goals} entries={entries} onSave={handleSaveGoals} />}
       {page === 'analytics' && <Analytics campaigns={campaigns} entries={entries} goals={goals} />}
 
       <nav className="fnav">
         {navItems.map(item => (
           <button
             key={item.id}
-            className={`fnav-item${item.id === 'goals' ? ' goals-nav' : ''}${page === item.id ? ' active' : ''}`}
+            className={`fnav-item${item.id === 'modal' ? ' goals-nav' : ''}${page === item.id ? ' active' : ''}`}
             onClick={() => goTo(item.id)}
           >
             {item.icon}
