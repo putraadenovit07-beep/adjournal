@@ -79,54 +79,104 @@ export default function Journal({ campaigns, entries, onEdit, onDelete, onQuickC
                   <span style={{ color: 'var(--p)', cursor: 'pointer' }} onClick={() => onQuickCatat(cp.id)}>Catat sekarang →</span>
                 </div>
               ) : (
-                <div className="tw" style={{ borderTop: '1px solid var(--brd)' }}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Tanggal</th>
-                        <th className="th-ads">Spend ADS</th>
-                        <th className="th-ads">Klik ADS</th>
-                        <th className="th-adsense">Tayangan</th>
-                        <th className="th-adsense">Penghasilan</th>
-                        <th>Profit</th>
-                        <th>ROI</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...cpEntries].sort((a, b) => b.date.localeCompare(a.date)).map(e => {
-                        const pr = calcProfit(e);
-                        const ri = calcROI(e);
-                        const rc = ri > 0 ? 'bdg-g' : ri < 0 ? 'bdg-r' : 'bdg-a';
-                        const pc = pr >= 0 ? 'var(--g)' : 'var(--r)';
-                        return [
-                          <tr key={e.id}>
-                            <td className="td-m">{e.date}</td>
-                            <td className="td-m" style={{ color: 'var(--r)' }}>{fRp(e.spend)}</td>
-                            <td className="td-m">{fN(e.adclicks)}</td>
-                            <td className="td-m">{fN(e.impressions)}</td>
-                            <td className="td-m" style={{ color: 'var(--g)' }}>{fRp(e.revenue)}</td>
-                            <td className="td-m" style={{ color: pc }}>{pr >= 0 ? '+' : ''}{fRp(pr)}</td>
-                            <td><span className={`badge ${rc}`}>{ri > 0 ? '+' : ''}{ri.toFixed(2)}%</span></td>
-                            <td>
-                              <div className="acts">
-                                <button className="btn-e" onClick={() => onEdit(e)}>Edit</button>
-                                <button className="btn-d" onClick={() => { if (confirm('Yakin hapus data ini?')) onDelete(e.id); }}>Hapus</button>
-                              </div>
-                            </td>
-                          </tr>,
-                          e.note ? (
-                            <tr key={`note-${e.id}`}>
-                              <td colSpan={8} style={{ padding: '6px 14px 10px', color: 'var(--t3)', fontSize: 11, whiteSpace: 'normal', background: 'rgba(255,255,255,0.01)' }}>
-                                📝 {e.note}
+                <>
+                  {/* Desktop: table */}
+                  <div className="tw j-tbl-desktop" style={{ borderTop: '1px solid var(--brd)' }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Tanggal</th>
+                          <th className="th-ads">Spend ADS</th>
+                          <th className="th-ads">Klik ADS</th>
+                          <th className="th-adsense">Tayangan</th>
+                          <th className="th-adsense">Penghasilan</th>
+                          <th>Profit</th>
+                          <th>ROI</th>
+                          <th>Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...cpEntries].sort((a, b) => b.date.localeCompare(a.date)).map(e => {
+                          const pr = calcProfit(e);
+                          const ri = calcROI(e);
+                          const rc = ri > 0 ? 'bdg-g' : ri < 0 ? 'bdg-r' : 'bdg-a';
+                          const pc = pr >= 0 ? 'var(--g)' : 'var(--r)';
+                          return [
+                            <tr key={e.id}>
+                              <td className="td-m">{e.date}</td>
+                              <td className="td-m" style={{ color: 'var(--r)' }}>{fRp(e.spend)}</td>
+                              <td className="td-m">{fN(e.adclicks)}</td>
+                              <td className="td-m">{fN(e.impressions)}</td>
+                              <td className="td-m" style={{ color: 'var(--g)' }}>{fRp(e.revenue)}</td>
+                              <td className="td-m" style={{ color: pc }}>{pr >= 0 ? '+' : ''}{fRp(pr)}</td>
+                              <td><span className={`badge ${rc}`}>{ri > 0 ? '+' : ''}{ri.toFixed(2)}%</span></td>
+                              <td>
+                                <div className="acts">
+                                  <button className="btn-e" onClick={() => onEdit(e)}>Edit</button>
+                                  <button className="btn-d" onClick={() => { if (confirm('Yakin hapus data ini?')) onDelete(e.id); }}>Hapus</button>
+                                </div>
                               </td>
-                            </tr>
-                          ) : null
-                        ];
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </tr>,
+                            e.note ? (
+                              <tr key={`note-${e.id}`}>
+                                <td colSpan={8} style={{ padding: '6px 14px 10px', color: 'var(--t3)', fontSize: 11, whiteSpace: 'normal', background: 'rgba(255,255,255,0.01)' }}>
+                                  📝 {e.note}
+                                </td>
+                              </tr>
+                            ) : null
+                          ];
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile: card list (no horizontal scroll) */}
+                  <div className="j-cards-mobile" style={{ borderTop: '1px solid var(--brd)' }}>
+                    {[...cpEntries].sort((a, b) => b.date.localeCompare(a.date)).map(e => {
+                      const pr = calcProfit(e);
+                      const ri = calcROI(e);
+                      const pc = pr >= 0 ? 'var(--g)' : 'var(--r)';
+                      const rc = ri > 0 ? 'var(--g)' : ri < 0 ? 'var(--r)' : 'var(--a)';
+                      return (
+                        <div key={e.id} className="j-mcard">
+                          <div className="j-mcard-head">
+                            <span className="j-mcard-date">{e.date}</span>
+                            <span className="j-mcard-profit" style={{ color: pc }}>
+                              {pr >= 0 ? '+' : ''}{fRp(pr)}
+                            </span>
+                          </div>
+                          <div className="j-mcard-grid">
+                            <div className="j-mcard-cell">
+                              <span className="j-mcard-lbl">Spend</span>
+                              <span className="j-mcard-val cr">{fRp(e.spend)}</span>
+                            </div>
+                            <div className="j-mcard-cell">
+                              <span className="j-mcard-lbl">Penghasilan</span>
+                              <span className="j-mcard-val cg">{fRp(e.revenue)}</span>
+                            </div>
+                            <div className="j-mcard-cell">
+                              <span className="j-mcard-lbl">Klik</span>
+                              <span className="j-mcard-val">{fN(e.adclicks)}</span>
+                            </div>
+                            <div className="j-mcard-cell">
+                              <span className="j-mcard-lbl">Tayangan</span>
+                              <span className="j-mcard-val">{fN(e.impressions)}</span>
+                            </div>
+                            <div className="j-mcard-cell j-mcard-cell-roi">
+                              <span className="j-mcard-lbl">ROI</span>
+                              <span className="j-mcard-val" style={{ color: rc }}>{ri > 0 ? '+' : ''}{ri.toFixed(2)}%</span>
+                            </div>
+                          </div>
+                          {e.note && <div className="j-mcard-note">📝 {e.note}</div>}
+                          <div className="j-mcard-acts">
+                            <button className="btn-e" onClick={() => onEdit(e)}>Edit</button>
+                            <button className="btn-d" onClick={() => { if (confirm('Yakin hapus data ini?')) onDelete(e.id); }}>Hapus</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>

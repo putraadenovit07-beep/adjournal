@@ -1,5 +1,5 @@
 import { Campaign, Entry, Goals } from '../lib/storage';
-import { fRp, fN, todayStr } from '../lib/helpers';
+import { fRp, todayStr } from '../lib/helpers';
 
 interface Props {
   campaigns: Campaign[];
@@ -65,10 +65,7 @@ export default function Analytics({ campaigns, entries, goals }: Props) {
 
   const totalSpend = entries.reduce((s, e) => s + (e.spend || 0), 0);
   const totalRevenue = entries.reduce((s, e) => s + (e.revenue || 0), 0);
-  const totalClicks = entries.reduce((s, e) => s + (e.adclicks || 0), 0);
-  const totalImpressions = entries.reduce((s, e) => s + (e.impressions || 0), 0);
   const netProfit = totalRevenue - totalSpend;
-  const roiOverall = totalSpend > 0 ? (netProfit / totalSpend) * 100 : 0;
 
   const modalNum = goals.modal || 0;
   const sisaBEP = Math.max(0, modalNum - netProfit);
@@ -181,34 +178,6 @@ export default function Analytics({ campaigns, entries, goals }: Props) {
           </div>
         </div>
       )}
-
-      {/* Overall Stats */}
-      <div className="sg4" style={{ marginBottom: 14 }}>
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--r)' }} />
-          <div className="sc-label">Total Spend</div>
-          <div className="sc-val cr">{fRp(totalSpend)}</div>
-          <div className="sc-sub">{campaigns.length} kampanye</div>
-        </div>
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--g)' }} />
-          <div className="sc-label">Total Revenue</div>
-          <div className="sc-val cg">{fRp(totalRevenue)}</div>
-          <div className="sc-sub">{entries.length} entri</div>
-        </div>
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--b)' }} />
-          <div className="sc-label">Total Klik</div>
-          <div className="sc-val cb">{fN(totalClicks)}</div>
-          <div className="sc-sub">{fN(totalImpressions)} tayangan</div>
-        </div>
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--p)' }} />
-          <div className="sc-label">ROI Keseluruhan</div>
-          <div className="sc-val" style={{ color: roiOverall >= 0 ? 'var(--g)' : 'var(--r)' }}>{roiOverall.toFixed(2)}%</div>
-          <div className="sc-sub">Net: {fRp(netProfit)}</div>
-        </div>
-      </div>
 
       <div className="two-col">
         <div className="card">

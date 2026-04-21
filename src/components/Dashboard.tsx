@@ -78,7 +78,6 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
   const sisaBEP = Math.max(0, modalNum - netProfit);
   const sudahBalik = modalNum > 0 && netProfit >= modalNum;
 
-  const roiColor = roi > 0 ? 'var(--g)' : roi < 0 ? 'var(--r)' : 'var(--t1)';
   const netColor = netProfit > 0 ? 'var(--g)' : netProfit < 0 ? 'var(--r)' : 'var(--t1)';
 
   const recentCampaigns = campaigns.slice(0, 5).map(cp => {
@@ -177,31 +176,42 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
         </div>
       </div>
 
-      {/* Total Stats */}
-      <div className="sg4">
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--r)' }} />
-          <div className="sc-label">Total Spend</div>
-          <div className="sc-val cr">{fRp(totalSpend)}</div>
-          <div className="sc-sub">Total biaya iklan</div>
+      {/* Hero Total Stats - Pro Adsense panel */}
+      <div className="hero-stats">
+        <div className="hero-stats-head">
+          <div>
+            <div className="hero-stats-title">Ringkasan Keseluruhan</div>
+            <div className="hero-stats-sub">{entries.length} entri · {campaigns.length} kampanye</div>
+          </div>
+          <div className={`hero-stats-roi ${roi >= 0 ? 'pos' : 'neg'}`}>
+            <span className="hero-stats-roi-label">ROI</span>
+            <span className="hero-stats-roi-val">{roi >= 0 ? '+' : ''}{roi.toFixed(2)}%</span>
+          </div>
         </div>
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--g)' }} />
-          <div className="sc-label">Penghasilan</div>
-          <div className="sc-val cg">{fRp(totalRevenue)}</div>
-          <div className="sc-sub">Total Penghasilan Adsense</div>
-        </div>
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--tc)' }} />
-          <div className="sc-label">Profit Bersih</div>
-          <div className="sc-val" style={{ color: netColor }}>{fRp(netProfit)}</div>
-          <div className="sc-sub">Penghasilan − Spend</div>
-        </div>
-        <div className="sc">
-          <div className="sc-accent" style={{ background: 'var(--p)' }} />
-          <div className="sc-label">ROI</div>
-          <div className="sc-val" style={{ color: roiColor }}>{roi.toFixed(2)}%</div>
-          <div className="sc-sub">Profit ÷ Spend × 100</div>
+        <div className="hero-stats-grid">
+          <div className="hero-stats-cell">
+            <div className="hero-stats-cell-icon" style={{ background: 'rgba(0,217,139,0.12)', color: 'var(--g)' }}>↑</div>
+            <div>
+              <div className="hero-stats-cell-label">Penghasilan</div>
+              <div className="hero-stats-cell-val cg">{fRp(totalRevenue)}</div>
+            </div>
+          </div>
+          <div className="hero-stats-cell">
+            <div className="hero-stats-cell-icon" style={{ background: 'rgba(255,77,109,0.12)', color: 'var(--r)' }}>↓</div>
+            <div>
+              <div className="hero-stats-cell-label">Spend Iklan</div>
+              <div className="hero-stats-cell-val cr">{fRp(totalSpend)}</div>
+            </div>
+          </div>
+          <div className="hero-stats-cell hero-stats-cell-net">
+            <div className="hero-stats-cell-icon" style={{ background: netProfit >= 0 ? 'rgba(0,217,139,0.18)' : 'rgba(255,77,109,0.18)', color: netColor }}>
+              {netProfit >= 0 ? '✓' : '!'}
+            </div>
+            <div>
+              <div className="hero-stats-cell-label">Profit Bersih</div>
+              <div className="hero-stats-cell-val" style={{ color: netColor }}>{netProfit >= 0 ? '+' : ''}{fRp(netProfit)}</div>
+            </div>
+          </div>
         </div>
       </div>
 
