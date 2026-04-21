@@ -140,7 +140,7 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
           ) : (
             <div className="day-grid">
               <DeltaCard
-                label="Profit Bersih"
+                label="Profit Bersih Hari Ini"
                 value={fRp(td.profit)}
                 prevValue={fRp(yd.profit)}
                 delta={delta(td.profit, yd.profit)}
@@ -148,7 +148,7 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
                 color={td.profit >= 0 ? 'var(--g)' : 'var(--r)'}
               />
               <DeltaCard
-                label="Penghasilan Adsense"
+                label="Penghasilan Adsense Hari Ini"
                 value={fRp(td.revenue)}
                 prevValue={fRp(yd.revenue)}
                 delta={delta(td.revenue, yd.revenue)}
@@ -156,7 +156,7 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
                 color="var(--g)"
               />
               <DeltaCard
-                label="Spend Iklan"
+                label="Spend Iklan Hari Ini"
                 value={fRp(td.spend)}
                 prevValue={fRp(yd.spend)}
                 delta={delta(td.spend, yd.spend)}
@@ -165,7 +165,7 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
                 color="var(--r)"
               />
               <DeltaCard
-                label="Klik Iklan"
+                label="Klik Iklan Hari Ini"
                 value={fN(td.clicks)}
                 prevValue={fN(yd.clicks)}
                 delta={delta(td.clicks, yd.clicks)}
@@ -176,41 +176,39 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
         </div>
       </div>
 
-      {/* Hero Total Stats - Pro Adsense panel */}
-      <div className="hero-stats">
-        <div className="hero-stats-head">
-          <div>
-            <div className="hero-stats-title">Ringkasan Keseluruhan</div>
-            <div className="hero-stats-sub">{entries.length} entri · {campaigns.length} kampanye</div>
+      {/* Mosaic Total Stats - hero profit + side stats */}
+      <div className="mosaic-stats">
+        <div className={`mosaic-hero ${netProfit >= 0 ? 'pos' : 'neg'}`}>
+          <div className="mosaic-hero-top">
+            <span className="mosaic-hero-label">Profit Bersih Keseluruhan</span>
+            <span className={`mosaic-hero-roi ${roi >= 0 ? 'pos' : 'neg'}`}>
+              ROI {roi >= 0 ? '+' : ''}{roi.toFixed(2)}%
+            </span>
           </div>
-          <div className={`hero-stats-roi ${roi >= 0 ? 'pos' : 'neg'}`}>
-            <span className="hero-stats-roi-label">ROI</span>
-            <span className="hero-stats-roi-val">{roi >= 0 ? '+' : ''}{roi.toFixed(2)}%</span>
+          <div className="mosaic-hero-val" style={{ color: netColor }}>
+            {netProfit >= 0 ? '+' : ''}{fRp(netProfit)}
+          </div>
+          <div className="mosaic-hero-foot">
+            <span className="mosaic-hero-dot" style={{ background: netColor }} />
+            {entries.length} entri tercatat · {campaigns.length} kampanye
           </div>
         </div>
-        <div className="hero-stats-grid">
-          <div className="hero-stats-cell">
-            <div className="hero-stats-cell-icon" style={{ background: 'rgba(0,217,139,0.12)', color: 'var(--g)' }}>↑</div>
-            <div>
-              <div className="hero-stats-cell-label">Penghasilan</div>
-              <div className="hero-stats-cell-val cg">{fRp(totalRevenue)}</div>
+        <div className="mosaic-side">
+          <div className="mosaic-mini">
+            <div className="mosaic-mini-bar" style={{ background: 'var(--g)' }} />
+            <div className="mosaic-mini-body">
+              <span className="mosaic-mini-label">Penghasilan Adsense Keseluruhan</span>
+              <span className="mosaic-mini-val cg">{fRp(totalRevenue)}</span>
             </div>
+            <span className="mosaic-mini-icon" style={{ color: 'var(--g)' }}>↑</span>
           </div>
-          <div className="hero-stats-cell">
-            <div className="hero-stats-cell-icon" style={{ background: 'rgba(255,77,109,0.12)', color: 'var(--r)' }}>↓</div>
-            <div>
-              <div className="hero-stats-cell-label">Spend Iklan</div>
-              <div className="hero-stats-cell-val cr">{fRp(totalSpend)}</div>
+          <div className="mosaic-mini">
+            <div className="mosaic-mini-bar" style={{ background: 'var(--r)' }} />
+            <div className="mosaic-mini-body">
+              <span className="mosaic-mini-label">Spend Iklan Keseluruhan</span>
+              <span className="mosaic-mini-val cr">{fRp(totalSpend)}</span>
             </div>
-          </div>
-          <div className="hero-stats-cell hero-stats-cell-net">
-            <div className="hero-stats-cell-icon" style={{ background: netProfit >= 0 ? 'rgba(0,217,139,0.18)' : 'rgba(255,77,109,0.18)', color: netColor }}>
-              {netProfit >= 0 ? '✓' : '!'}
-            </div>
-            <div>
-              <div className="hero-stats-cell-label">Profit Bersih</div>
-              <div className="hero-stats-cell-val" style={{ color: netColor }}>{netProfit >= 0 ? '+' : ''}{fRp(netProfit)}</div>
-            </div>
+            <span className="mosaic-mini-icon" style={{ color: 'var(--r)' }}>↓</span>
           </div>
         </div>
       </div>
