@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import type { GistData, ProfileData, ProfileSettings } from '../lib/github-db';
+import type { GistData, ProfileData, ProfileSettings, ThemeName } from '../lib/github-db';
 import { EMPTY_PROFILE, EMPTY_SETTINGS } from '../lib/github-db';
+import { testTelegram } from '../lib/telegram';
 
 interface Props {
   username: string;
@@ -33,10 +34,21 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [settingsFor, setSettingsFor] = useState<string | null>(null);
   const [draftSettings, setDraftSettings] = useState<ProfileSettings>({ ...EMPTY_SETTINGS });
+  const [tgTesting, setTgTesting] = useState(false);
+  const [tgResult, setTgResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function handleTestTelegram() {
+    if (!settingsFor) return;
+    setTgTesting(true); setTgResult(null);
+    const r = await testTelegram(draftSettings, settingsFor);
+    setTgResult({ ok: r.ok, msg: r.ok ? 'Berhasil! Cek Telegram kamu.' : (r.error || 'Gagal kirim') });
+    setTgTesting(false);
+  }
 
   function openSettings(name: string) {
     const current = gistData.profiles[name]?.settings || EMPTY_SETTINGS;
     setDraftSettings({ ...EMPTY_SETTINGS, ...current });
+    setTgResult(null);
     setSettingsFor(name);
   }
 
@@ -201,28 +213,107 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                   <div className="profile-settings-sub">Akun: <strong>{settingsFor}</strong></div>
                 </div>
               </div>
-              <div className="profile-settings-section">
-                <div className="profile-settings-section-title">Sembunyikan di Dashboard</div>
-                <label className="profile-settings-row">
-                  <div className="profile-settings-row-info">
-                    <div className="profile-settings-row-name">Modal Awal</div>
-                    <div className="profile-settings-row-desc">Tracker BEP/balik modal di atas Dashboard</div>
+              <div className="profile-settings-scroll">
+                <div className="profile-settings-section">
+                  <div className="profile-settings-section-title">Sembunyikan di Dashboard</div>
+                  <label className="profile-settings-row">
+                    <div className="profile-settings-row-info">
+                      <div className="profile-settings-row-name">Modal Awal</div>
+                      <div className="profile-settings-row-desc">Tracker BEP/balik modal di atas Dashboard</div>
+                    </div>
+                    <span className={`profile-toggle ${draftSettings.hideModalAwal ? 'on' : ''}`}
+                      onClick={() => setDraftSettings(s => ({ ...s, hideModalAwal: !s.hideModalAwal }))}>
+                      <span className="profile-toggle-knob" />
+                    </span>
+                  </label>
+                  <label className="profile-settings-row">
+                    <div className="profile-settings-row-info">
+                      <div className="profile-settings-row-name">Campaign Terbaru</div>
+                      <div className="profile-settings-row-desc">Daftar 5 campaign terakhir di bawah Dashboard</div>
+                    </div>
+                    <span className={`profile-toggle ${draftSettings.hideRecentCampaigns ? 'on' : ''}`}
+                      onClick={() => setDraftSettings(s => ({ ...s, hideRecentCampaigns: !s.hideRecentCampaigns }))}>
+                      <span className="profile-toggle-knob" />
+                    </span>
+                  </label>
+                </div>
+
+                <div className="profile-settings-section">
+                  <div className="profile-settings-section-title">Tema Tampilan</div>
+                  <div className="theme-picker">
+                    {([
+                      { id: 'default', name: 'Default', sub: 'Gelap & ungu', c1: '#0f0f17', c2: '#8b7cf8', c3: '#f4f4f8' },
+                      { id: 'adsense', name: 'Adsense', sub: 'Putih & biru Google', c1: '#ffffff', c2: '#1a73e8', c3: '#202124' },
+                    ] as { id: ThemeName; name: string; sub: string; c1: string; c2: string; c3: string }[]).map(t => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`theme-card ${(draftSettings.theme || 'default') === t.id ? 'active' : ''}`}
+                        onClick={() => setDraftSettings(s => ({ ...s, theme: t.id }))}
+                      >
+                        <div className="theme-swatch" style={{ background: t.c1, border: `1px solid ${t.id === 'adsense' ? '#dadce0' : 'rgba(255,255,255,0.08)'}` }}>
+                          <span className="theme-dot" style={{ background: t.c2 }} />
+                          <span className="theme-bar" style={{ background: t.c3, opacity: 0.85 }} />
+                          <span className="theme-bar short" style={{ background: t.c3, opacity: 0.5 }} />
+                        </div>
+                        <div className="theme-meta">
+                          <div className="theme-name">{t.name}</div>
+                          <div className="theme-sub">{t.sub}</div>
+                        </div>
+                        {(draftSettings.theme || 'default') === t.id && (
+                          <span className="theme-check">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                          </span>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                  <span className={`profile-toggle ${draftSettings.hideModalAwal ? 'on' : ''}`}
-                    onClick={() => setDraftSettings(s => ({ ...s, hideModalAwal: !s.hideModalAwal }))}>
-                    <span className="profile-toggle-knob" />
-                  </span>
-                </label>
-                <label className="profile-settings-row">
-                  <div className="profile-settings-row-info">
-                    <div className="profile-settings-row-name">Campaign Terbaru</div>
-                    <div className="profile-settings-row-desc">Daftar 5 campaign terakhir di bawah Dashboard</div>
-                  </div>
-                  <span className={`profile-toggle ${draftSettings.hideRecentCampaigns ? 'on' : ''}`}
-                    onClick={() => setDraftSettings(s => ({ ...s, hideRecentCampaigns: !s.hideRecentCampaigns }))}>
-                    <span className="profile-toggle-knob" />
-                  </span>
-                </label>
+                </div>
+
+                <div className="profile-settings-section">
+                  <div className="profile-settings-section-title">Notifikasi Telegram</div>
+                  <label className="profile-settings-row">
+                    <div className="profile-settings-row-info">
+                      <div className="profile-settings-row-name">Aktifkan Alert</div>
+                      <div className="profile-settings-row-desc">Kirim pesan ke Telegram setiap catat / edit jurnal</div>
+                    </div>
+                    <span className={`profile-toggle ${draftSettings.telegramEnabled ? 'on' : ''}`}
+                      onClick={() => setDraftSettings(s => ({ ...s, telegramEnabled: !s.telegramEnabled }))}>
+                      <span className="profile-toggle-knob" />
+                    </span>
+                  </label>
+                  {draftSettings.telegramEnabled && (
+                    <div className="tg-fields">
+                      <div className="fg">
+                        <label>Bot Token</label>
+                        <input
+                          type="password"
+                          placeholder="123456789:ABC..."
+                          value={draftSettings.telegramBotToken || ''}
+                          onChange={e => { setDraftSettings(s => ({ ...s, telegramBotToken: e.target.value })); setTgResult(null); }}
+                        />
+                      </div>
+                      <div className="fg">
+                        <label>Chat ID</label>
+                        <input
+                          type="text"
+                          placeholder="-1001234567890 atau 12345678"
+                          value={draftSettings.telegramChatId || ''}
+                          onChange={e => { setDraftSettings(s => ({ ...s, telegramChatId: e.target.value })); setTgResult(null); }}
+                        />
+                      </div>
+                      <div className="tg-help">
+                        Buat bot via <strong>@BotFather</strong> untuk dapat token, lalu kirim /start ke bot &amp; cek <strong>@userinfobot</strong> untuk Chat ID.
+                      </div>
+                      <button type="button" className="tg-test-btn" onClick={handleTestTelegram} disabled={tgTesting}>
+                        {tgTesting ? 'Mengirim...' : 'Tes Kirim Pesan'}
+                      </button>
+                      {tgResult && (
+                        <div className={`tg-result ${tgResult.ok ? 'ok' : 'err'}`}>{tgResult.msg}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="profile-confirm-acts">
                 <button className="profile-confirm-no" onClick={() => setSettingsFor(null)}>Batal</button>

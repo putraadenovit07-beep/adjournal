@@ -5,6 +5,7 @@ import { formatDate } from './lib/helpers';
 import { getToken, clearToken, getUsername, getLastProfile, setLastProfile } from './lib/auth';
 import { writeDb, loginWithToken, EMPTY_PROFILE, EMPTY_SETTINGS } from './lib/github-db';
 import type { GistData, ProfileData, ProfileSettings } from './lib/github-db';
+import { sendTelegram, buildEntryMessage } from './lib/telegram';
 import Login from './components/Login';
 import ProfileSelect from './components/ProfileSelect';
 import Dashboard from './components/Dashboard';
@@ -69,6 +70,16 @@ export default function App() {
     setGoals(profileData.goals || EMPTY_GOALS);
     setSettings({ ...EMPTY_SETTINGS, ...(profileData.settings || {}) });
   }
+
+  // Apply theme to <html> based on current settings
+  useEffect(() => {
+    const theme = settings.theme || 'default';
+    if (theme === 'default') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+  }, [settings.theme]);
 
   function handleLogin(user: string, data: GistData) {
     setUsername(user);
@@ -184,6 +195,13 @@ export default function App() {
     }
     setEntries(updated);
     syncDb(campaigns, updated, goals, gistData!, activeProfile!);
+
+    // Telegram alert
+    if (settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId && activeProfile) {
+      const cp = campaigns.find(c => String(c.id) === String(data.campaignId));
+      const msg = buildEntryMessage({ profileName: activeProfile, campaign: cp, entry: data, isEdit: !!editId });
+      sendTelegram(msg, settings).catch(() => {});
+    }
   }
 
   function handleDeleteEntry(id: number) {

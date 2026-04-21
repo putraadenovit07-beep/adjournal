@@ -560,3 +560,131 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
 .profile-toggle-knob{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
 .profile-toggle.on .profile-toggle-knob{transform:translateX(18px)}
 .profile-settings-save{background:var(--p) !important;color:#fff !important}
+
+/* Settings modal scroll wrapper */
+.profile-settings-scroll{max-height:60vh;overflow-y:auto;margin:0 -4px 0 -4px;padding:0 4px}
+
+/* Theme picker */
+.theme-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 0 12px}
+.theme-card{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:8px;background:var(--s1);border:1.5px solid var(--brd);border-radius:12px;padding:10px;cursor:pointer;color:var(--t1);text-align:left;transition:all 0.2s}
+.theme-card:hover{border-color:var(--brd2)}
+.theme-card.active{border-color:var(--p);box-shadow:0 0 0 3px rgba(139,124,248,0.18)}
+.theme-swatch{position:relative;height:54px;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:8px;gap:4px}
+.theme-dot{position:absolute;top:8px;left:8px;width:14px;height:14px;border-radius:50%}
+.theme-bar{display:block;height:5px;border-radius:3px;width:80%}
+.theme-bar.short{width:55%}
+.theme-meta{display:flex;flex-direction:column;gap:1px}
+.theme-name{font-size:13px;font-weight:600;color:var(--t1)}
+.theme-sub{font-size:11px;color:var(--t3)}
+.theme-check{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center}
+
+/* Telegram fields */
+.tg-fields{padding:10px 0 4px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--brd);margin-top:6px}
+.tg-fields .fg{display:flex;flex-direction:column;gap:4px}
+.tg-fields label{font-size:12px;color:var(--t2);font-weight:500}
+.tg-fields input{background:var(--s1);border:1px solid var(--brd);color:var(--t1);border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;outline:none;transition:border-color 0.15s}
+.tg-fields input:focus{border-color:var(--p)}
+.tg-help{font-size:11.5px;color:var(--t3);line-height:1.5}
+.tg-help strong{color:var(--t2);font-weight:600}
+.tg-test-btn{background:var(--s1);border:1px solid var(--brd);color:var(--t1);padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.tg-test-btn:hover:not(:disabled){background:var(--s2);border-color:var(--b)}
+.tg-test-btn:disabled{opacity:0.6;cursor:not-allowed}
+.tg-result{font-size:12px;padding:8px 10px;border-radius:8px;font-weight:500}
+.tg-result.ok{background:rgba(0,217,139,0.1);color:var(--g);border:1px solid rgba(0,217,139,0.25)}
+.tg-result.err{background:rgba(255,77,109,0.1);color:var(--r);border:1px solid rgba(255,77,109,0.25)}
+
+/* ============ ADSENSE THEME (light, blue & white like Google Adsense dashboard) ============ */
+[data-theme="adsense"]{
+  --bg:#f8f9fa;
+  --s1:#ffffff;
+  --s2:#ffffff;
+  --s3:#f1f3f4;
+  --brd:#dadce0;
+  --brd2:#bdc1c6;
+  --t1:#202124;
+  --t2:#5f6368;
+  --t3:#80868b;
+  --g:#137333;--g2:rgba(19,115,51,0.08);
+  --r:#c5221f;--r2:rgba(197,34,31,0.08);
+  --b:#1a73e8;--b2:rgba(26,115,232,0.08);
+  --a:#e37400;--a2:rgba(227,116,0,0.08);
+  --p:#1a73e8;--p2:rgba(26,115,232,0.1);
+  --tc:#0288d1;--tc2:rgba(2,136,209,0.08);
+}
+[data-theme="adsense"] body{background:#f8f9fa;color:#202124}
+[data-theme="adsense"] .card,
+[data-theme="adsense"] .mosaic-hero,
+[data-theme="adsense"] .mosaic-mini,
+[data-theme="adsense"] .day-card,
+[data-theme="adsense"] .bep-compact,
+[data-theme="adsense"] .topbar,
+[data-theme="adsense"] .fnav,
+[data-theme="adsense"] .login-box,
+[data-theme="adsense"] .profile-box,
+[data-theme="adsense"] .profile-confirm-modal{
+  background:#ffffff;
+  border-color:#dadce0;
+  box-shadow:0 1px 2px rgba(60,64,67,0.08), 0 1px 3px rgba(60,64,67,0.05);
+}
+[data-theme="adsense"] .topbar{border-bottom:1px solid #dadce0;box-shadow:0 1px 2px rgba(60,64,67,0.06)}
+[data-theme="adsense"] .fnav{border-top:1px solid #dadce0;box-shadow:0 -2px 8px rgba(60,64,67,0.06)}
+[data-theme="adsense"] .fnav-item{color:#5f6368}
+[data-theme="adsense"] .fnav-item.active{color:#1a73e8}
+[data-theme="adsense"] .fnav-item.active svg{stroke:#1a73e8}
+[data-theme="adsense"] .card-h{border-bottom:1px solid #e8eaed}
+[data-theme="adsense"] .card-h-title{color:#202124;font-weight:500}
+[data-theme="adsense"] .empty{color:#80868b}
+[data-theme="adsense"] .btn-primary,
+[data-theme="adsense"] .profile-confirm-yes:not(.profile-settings-save){background:#1a73e8;color:#fff;border:none}
+[data-theme="adsense"] .btn-primary:hover{background:#1765c1}
+[data-theme="adsense"] .btn-secondary,
+[data-theme="adsense"] .profile-confirm-no{background:#fff;color:#1a73e8;border:1px solid #dadce0}
+[data-theme="adsense"] .btn-secondary:hover,
+[data-theme="adsense"] .profile-confirm-no:hover{background:#f1f3f4}
+[data-theme="adsense"] input,
+[data-theme="adsense"] select,
+[data-theme="adsense"] textarea{background:#fff;border-color:#dadce0;color:#202124}
+[data-theme="adsense"] input:focus,
+[data-theme="adsense"] select:focus,
+[data-theme="adsense"] textarea:focus{border-color:#1a73e8;box-shadow:0 0 0 1px #1a73e8}
+[data-theme="adsense"] .topbar-profile-btn:hover{background:#f1f3f4}
+[data-theme="adsense"] .sync-pill{background:#f1f3f4;color:#5f6368;border:1px solid #dadce0}
+[data-theme="adsense"] .sync-pill.ok{background:#e6f4ea;color:#137333;border-color:#ceead6}
+[data-theme="adsense"] .sync-pill.err{background:#fce8e6;color:#c5221f;border-color:#f4c7c3}
+[data-theme="adsense"] .sync-pill.syncing{background:#e8f0fe;color:#1a73e8;border-color:#aecbfa}
+[data-theme="adsense"] .profile-card{background:#fff;border:1px solid #dadce0;color:#202124}
+[data-theme="adsense"] .profile-card:hover{background:#f8f9fa;border-color:#1a73e8}
+[data-theme="adsense"] .profile-card-set,
+[data-theme="adsense"] .profile-card-del{background:#fff;border-color:#dadce0;color:#5f6368}
+[data-theme="adsense"] .profile-card-set:hover{background:#e8f0fe;border-color:#1a73e8;color:#1a73e8}
+[data-theme="adsense"] .profile-add-btn{background:#fff;border:1px dashed #1a73e8;color:#1a73e8}
+[data-theme="adsense"] .profile-add-btn:hover{background:#e8f0fe}
+[data-theme="adsense"] .profile-logout{color:#5f6368}
+[data-theme="adsense"] .profile-logout:hover{color:#c5221f;background:#fce8e6}
+[data-theme="adsense"] .login-brand{color:#202124}
+[data-theme="adsense"] .login-brand span{color:#1a73e8}
+[data-theme="adsense"] .ph h1{color:#202124}
+[data-theme="adsense"] .ph p{color:#5f6368}
+[data-theme="adsense"] .day-card{background:#f8f9fa;border:1px solid #e8eaed}
+[data-theme="adsense"] .modal-strip-empty{background:#e8f0fe;border:1px solid #aecbfa;color:#1a73e8}
+[data-theme="adsense"] .bep-compact{background:#fff;border:1px solid #dadce0}
+[data-theme="adsense"] .bep-compact.done{background:#e6f4ea;border-color:#ceead6}
+[data-theme="adsense"] .camp-item{border-color:#e8eaed}
+[data-theme="adsense"] .camp-name{color:#202124}
+[data-theme="adsense"] .camp-date{color:#5f6368}
+[data-theme="adsense"] .topbar-date{color:#5f6368}
+[data-theme="adsense"] .topbar-profile-name{color:#202124}
+[data-theme="adsense"] .topbar-profile-switch{color:#5f6368}
+[data-theme="adsense"] .profile-settings-section{background:#f8f9fa;border-color:#e8eaed}
+[data-theme="adsense"] .profile-toggle{background:#dadce0}
+[data-theme="adsense"] .profile-toggle.on{background:#1a73e8}
+[data-theme="adsense"] .theme-card{background:#fff;border-color:#dadce0}
+[data-theme="adsense"] .theme-card.active{border-color:#1a73e8;box-shadow:0 0 0 3px rgba(26,115,232,0.18)}
+[data-theme="adsense"] .theme-check{background:#1a73e8}
+[data-theme="adsense"] .tg-fields input{background:#fff;border-color:#dadce0}
+[data-theme="adsense"] .tg-fields input:focus{border-color:#1a73e8}
+[data-theme="adsense"] .tg-test-btn{background:#fff;border-color:#dadce0;color:#1a73e8}
+[data-theme="adsense"] .tg-test-btn:hover:not(:disabled){background:#e8f0fe;border-color:#1a73e8}
+[data-theme="adsense"] .profile-confirm-icon,
+[data-theme="adsense"] .profile-settings-icon{background:#e8f0fe;color:#1a73e8}
+[data-theme="adsense"] .profile-settings-save{background:#1a73e8 !important}

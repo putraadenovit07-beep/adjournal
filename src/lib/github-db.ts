@@ -4,9 +4,15 @@ import type { Campaign, Entry, Goals } from './storage';
 const GIST_FILENAME = 'adjournal-data.json';
 const GIST_DESC = 'AdJournal Database';
 
+export type ThemeName = 'default' | 'adsense';
+
 export interface ProfileSettings {
   hideModalAwal?: boolean;
   hideRecentCampaigns?: boolean;
+  theme?: ThemeName;
+  telegramEnabled?: boolean;
+  telegramBotToken?: string;
+  telegramChatId?: string;
 }
 
 export interface ProfileData {
@@ -26,6 +32,10 @@ const EMPTY_GOALS: Goals = { modal: 0, start: '', milestones: [], locked: false 
 export const EMPTY_SETTINGS: ProfileSettings = {
   hideModalAwal: false,
   hideRecentCampaigns: false,
+  theme: 'default',
+  telegramEnabled: false,
+  telegramBotToken: '',
+  telegramChatId: '',
 };
 
 export const EMPTY_PROFILE: ProfileData = {
