@@ -822,3 +822,48 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
 
 /* Subtle background tint so cards pop more */
 [data-theme="adsense"] body{background:#f1f3f4 !important}
+
+/* === App toast notification === */
+.app-toast{
+  position:fixed;left:50%;bottom:88px;transform:translateX(-50%);
+  background:var(--s2);color:var(--t1);
+  border:1px solid var(--brd);
+  padding:12px 18px;border-radius:12px;
+  font-size:13.5px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  z-index:9999;cursor:pointer;
+  max-width:88vw;text-align:center;
+  animation:toastIn 0.25s cubic-bezier(0.2,0.8,0.2,1);
+}
+.app-toast.ok{background:linear-gradient(135deg,var(--g),#00b377);color:#fff;border:none}
+.app-toast.err{background:linear-gradient(135deg,var(--r),#cc1f3f);color:#fff;border:none}
+.app-toast.info{background:linear-gradient(135deg,var(--p),#6e5fd8);color:#fff;border:none}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+
+[data-theme="adsense"] .app-toast.ok{background:linear-gradient(135deg,#137333,#0f5c28) !important;color:#fff !important;box-shadow:0 8px 24px rgba(19,115,51,0.35) !important}
+[data-theme="adsense"] .app-toast.err{background:linear-gradient(135deg,#c5221f,#a52320) !important;color:#fff !important;box-shadow:0 8px 24px rgba(197,34,31,0.35) !important}
+[data-theme="adsense"] .app-toast.info{background:linear-gradient(135deg,#1a73e8,#1765c1) !important;color:#fff !important;box-shadow:0 8px 24px rgba(26,115,232,0.35) !important}
+
+/* === Fix native <select> dropdown options in adsense theme === */
+[data-theme="adsense"] select{
+  background-color:#fff !important;
+  color:#202124 !important;
+  -webkit-appearance:none;
+  appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%235f6368' d='M6 8L0 0h12z'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:34px !important;
+}
+[data-theme="adsense"] select option{
+  background-color:#ffffff !important;
+  color:#202124 !important;
+}
+[data-theme="adsense"] select option:checked,
+[data-theme="adsense"] select option:hover{
+  background-color:#e8f0fe !important;
+  color:#1a73e8 !important;
+}
+
+/* Default theme — make options match dark surface so dropdown isn't system white */
+select option{background-color:#1a1a26;color:#f4f4f8}

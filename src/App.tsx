@@ -35,6 +35,12 @@ export default function App() {
   const [editEntry, setEditEntry] = useState<Entry | null>(null);
   const [prefillCampaignId, setPrefillCampaignId] = useState<number | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'ok' | 'err'>('idle');
+  const [toast, setToast] = useState<{ kind: 'ok' | 'err' | 'info'; msg: string } | null>(null);
+
+  function showToast(kind: 'ok' | 'err' | 'info', msg: string, ms = 3200) {
+    setToast({ kind, msg });
+    window.setTimeout(() => setToast(t => (t && t.msg === msg ? null : t)), ms);
+  }
 
   // Auto-login if token is cached
   useEffect(() => {
@@ -196,11 +202,15 @@ export default function App() {
     setEntries(updated);
     syncDb(campaigns, updated, goals, gistData!, activeProfile!);
 
+    showToast('ok', editId ? 'Jurnal berhasil diperbarui' : 'Jurnal berhasil disimpan');
+
     // Telegram alert
     if (settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId && activeProfile) {
       const cp = campaigns.find(c => String(c.id) === String(data.campaignId));
       const msg = buildEntryMessage({ profileName: activeProfile, campaign: cp, entry: data, isEdit: !!editId });
-      sendTelegram(msg, settings).catch(() => {});
+      sendTelegram(msg, settings)
+        .then(() => showToast('info', '📨 Alert Telegram terkirim'))
+        .catch(err => showToast('err', '❌ Telegram gagal: ' + (err?.message || 'cek token/chat ID')));
     }
   }
 
@@ -307,6 +317,12 @@ export default function App() {
           </button>
         ))}
       </nav>
+
+      {toast && (
+        <div className={`app-toast ${toast.kind}`} onClick={() => setToast(null)}>
+          {toast.msg}
+        </div>
+      )}
     </>
   );
 }
