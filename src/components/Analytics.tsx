@@ -1,5 +1,5 @@
 import { Campaign, Entry, Goals } from '../lib/storage';
-import { fRp, fN, calcProfit, calcROI } from '../lib/helpers';
+import { fRp, fN, todayStr } from '../lib/helpers';
 
 interface Props {
   campaigns: Campaign[];
@@ -7,8 +7,46 @@ interface Props {
   goals: Goals;
 }
 
+function addDaysIso(date: string, days: number): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function calcProjection(entries: Entry[], modal: number, currentNet: number) {
+  const today = todayStr();
+  const cutoff = addDaysIso(today, -7);
+  const recent = entries.filter(e => e.date >= cutoff && e.date <= today);
+  const recentProfit = recent.reduce((s, e) => s + ((e.revenue || 0) - (e.spend || 0)), 0);
+
+  // Determine number of distinct days
+  const days = new Set(recent.map(e => e.date)).size || 1;
+  const avgDailyProfit = recentProfit / days;
+  const sisa = Math.max(0, modal - currentNet);
+
+  if (avgDailyProfit <= 0 || sisa === 0) {
+    return {
+      avgDailyProfit,
+      sisa,
+      daysToBEP: null as number | null,
+      etaDate: null as string | null,
+      done: sisa === 0 && modal > 0,
+      noTrend: avgDailyProfit <= 0 && sisa > 0,
+      sampleDays: days,
+    };
+  }
+  const daysToBEP = Math.ceil(sisa / avgDailyProfit);
+  const etaDate = addDaysIso(today, daysToBEP);
+  return { avgDailyProfit, sisa, daysToBEP, etaDate, done: false, noTrend: false, sampleDays: days };
+}
+
+function fmtIDDate(iso: string): string {
+  const d = new Date(iso);
+  const mn = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return `${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export default function Analytics({ campaigns, entries, goals }: Props) {
-  // Per-campaign stats
   const cpStats = campaigns.map(cp => {
     const cpEntries = entries.filter(e => String(e.campaignId) === String(cp.id));
     const spend = cpEntries.reduce((s, e) => s + (e.spend || 0), 0);
@@ -32,11 +70,117 @@ export default function Analytics({ campaigns, entries, goals }: Props) {
   const netProfit = totalRevenue - totalSpend;
   const roiOverall = totalSpend > 0 ? (netProfit / totalSpend) * 100 : 0;
 
+  const modalNum = goals.modal || 0;
+  const sisaBEP = Math.max(0, modalNum - netProfit);
+  const pctBalik = modalNum > 0 ? Math.min(100, Math.max(0, (netProfit / modalNum) * 100)) : 0;
+  const sudahBalik = modalNum > 0 && netProfit >= modalNum;
+
+  const proj = calcProjection(entries, modalNum, netProfit);
+
   const notesEntries = entries.filter(e => e.note);
 
   return (
     <div className="page">
-      <div className="ph"><h1>Analitik</h1><p>Performa dan breakdown keuangan keseluruhan</p></div>
+      <div className="ph"><h1>Analitik</h1><p>Performa, balik modal & proyeksi</p></div>
+
+      {/* Tracker Balik Modal + Proyeksi - PRETTY ADSENSE STYLE */}
+      {modalNum > 0 ? (
+        <div className="bep-card">
+          <div className="bep-header">
+            <div>
+              <div className="bep-title">Tracker Balik Modal</div>
+              <div className="bep-subtitle">{sudahBalik ? '🎉 Modal sudah balik!' : 'Progress menuju Break Even Point'}</div>
+            </div>
+            <div className={`bep-status ${sudahBalik ? 'done' : 'progress'}`}>
+              {sudahBalik ? '✓ BEP Tercapai' : `${pctBalik.toFixed(1)}%`}
+            </div>
+          </div>
+
+          {/* Big metrics row */}
+          <div className="bep-metrics">
+            <div className="bep-metric">
+              <div className="bep-metric-label">Modal Awal</div>
+              <div className="bep-metric-val" style={{ color: 'var(--p)' }}>{fRp(modalNum)}</div>
+            </div>
+            <div className="bep-metric-sep" />
+            <div className="bep-metric">
+              <div className="bep-metric-label">Profit Bersih</div>
+              <div className="bep-metric-val" style={{ color: netProfit >= 0 ? 'var(--g)' : 'var(--r)' }}>
+                {netProfit >= 0 ? '+' : ''}{fRp(netProfit)}
+              </div>
+            </div>
+            <div className="bep-metric-sep" />
+            <div className="bep-metric">
+              <div className="bep-metric-label">{sudahBalik ? 'Lebihan' : 'Sisa untuk BEP'}</div>
+              <div className="bep-metric-val" style={{ color: sudahBalik ? 'var(--g)' : 'var(--a)' }}>
+                {sudahBalik ? '+' + fRp(netProfit - modalNum) : fRp(sisaBEP)}
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="bep-progress-wrap">
+            <div className="bep-progress-track">
+              <div className="bep-progress-fill" style={{
+                width: `${pctBalik}%`,
+                background: sudahBalik ? 'linear-gradient(90deg, var(--g), var(--tc))' : 'linear-gradient(90deg, var(--p), #b8acff)'
+              }} />
+            </div>
+            <div className="bep-progress-labels">
+              <span>0</span>
+              <span style={{ color: 'var(--t1)', fontWeight: 600 }}>{pctBalik.toFixed(1)}% balik modal</span>
+              <span>{fRp(modalNum)}</span>
+            </div>
+          </div>
+
+          {/* Projection sub-section */}
+          <div className="bep-projection">
+            <div className="bep-proj-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <span>Proyeksi Balik Modal</span>
+              <span className="bep-proj-tag">Berdasarkan rata-rata 7 hari ({proj.sampleDays} hari aktif)</span>
+            </div>
+            <div className="bep-proj-body">
+              {proj.done ? (
+                <div className="bep-proj-done">
+                  ✓ Modal sudah balik. Selamat! 🎉
+                </div>
+              ) : proj.noTrend ? (
+                <div className="bep-proj-warn">
+                  ⚠ Belum bisa diproyeksikan — profit harian rata-rata masih ≤ 0.
+                  <br/><span style={{ fontSize: 11, color: 'var(--t3)' }}>Tingkatkan profit harian dulu agar BEP bisa dihitung.</span>
+                </div>
+              ) : (
+                <div className="bep-proj-grid">
+                  <div className="bep-proj-item highlight">
+                    <div className="bep-proj-label">Estimasi Balik Modal</div>
+                    <div className="bep-proj-big">{proj.daysToBEP} hari lagi</div>
+                    <div className="bep-proj-sub">≈ {fmtIDDate(proj.etaDate!)}</div>
+                  </div>
+                  <div className="bep-proj-item">
+                    <div className="bep-proj-label">Profit Harian (rata-rata)</div>
+                    <div className="bep-proj-big" style={{ color: 'var(--g)' }}>{fRp(proj.avgDailyProfit)}</div>
+                    <div className="bep-proj-sub">Per hari aktif terakhir</div>
+                  </div>
+                  <div className="bep-proj-item">
+                    <div className="bep-proj-label">Sisa Target</div>
+                    <div className="bep-proj-big" style={{ color: 'var(--a)' }}>{fRp(proj.sisa)}</div>
+                    <div className="bep-proj-sub">Untuk capai BEP</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-b">
+            <div className="empty">
+              💡 Belum ada modal awal. Atur dulu di menu <strong style={{ color: 'var(--p)' }}>Modal</strong> untuk lihat tracker & proyeksi balik modal.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overall Stats */}
       <div className="sg4" style={{ marginBottom: 14 }}>
@@ -66,48 +210,7 @@ export default function Analytics({ campaigns, entries, goals }: Props) {
         </div>
       </div>
 
-      {/* Goals balik modal */}
-      {goals.modal > 0 && (
-        <div className="card" style={{ marginBottom: 14 }}>
-          <div className="card-h">
-            <span className="card-h-title">Goals &amp; Balik Modal</span>
-            <span className="card-h-tag" style={{ color: totalRevenue >= goals.modal ? 'var(--g)' : 'var(--a)' }}>
-              {totalRevenue >= goals.modal ? '✓ Balik Modal' : 'Belum Balik Modal'}
-            </span>
-          </div>
-          <div className="card-b">
-            <div className="modal-bar">
-              <div className="modal-bar-item">
-                <span className="modal-bar-label">Modal Awal</span>
-                <span className="modal-bar-val cr">{fRp(goals.modal)}</span>
-              </div>
-              <div className="modal-bar-item">
-                <span className="modal-bar-label">Total Penghasilan</span>
-                <span className="modal-bar-val cg">{fRp(totalRevenue)}</span>
-              </div>
-              <div className="modal-bar-item">
-                <span className="modal-bar-label">{totalRevenue >= goals.modal ? 'Untung' : 'Sisa Kurang'}</span>
-                <span className="modal-bar-val" style={{ color: totalRevenue >= goals.modal ? 'var(--g)' : 'var(--r)' }}>
-                  {fRp(Math.abs(totalRevenue - goals.modal))}
-                </span>
-              </div>
-            </div>
-            {goals.modal > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'var(--g)', borderRadius: 4, width: `${Math.min(100, (totalRevenue / goals.modal) * 100)}%`, transition: 'width 0.7s' }} />
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4, fontFamily: 'JetBrains Mono, monospace' }}>
-                  {Math.min(100, ((totalRevenue / goals.modal) * 100)).toFixed(1)}% dari target balik modal
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="two-col">
-        {/* Top ROI */}
         <div className="card">
           <div className="card-h"><span className="card-h-title">Top ROI per Campaign</span></div>
           <div className="card-b">
@@ -132,7 +235,6 @@ export default function Analytics({ campaigns, entries, goals }: Props) {
           </div>
         </div>
 
-        {/* Top Revenue */}
         <div className="card">
           <div className="card-h"><span className="card-h-title">Top Penghasilan</span></div>
           <div className="card-b">
@@ -153,7 +255,6 @@ export default function Analytics({ campaigns, entries, goals }: Props) {
         </div>
       </div>
 
-      {/* Notes */}
       {notesEntries.length > 0 && (
         <div className="card">
           <div className="card-h"><span className="card-h-title">Catatan Terbaru</span><span className="card-h-tag">{notesEntries.length} catatan</span></div>

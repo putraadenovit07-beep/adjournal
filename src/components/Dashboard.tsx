@@ -1,5 +1,5 @@
 import { Campaign, Entry, Goals } from '../lib/storage';
-import { fRp } from '../lib/helpers';
+import { fRp, fN, todayStr } from '../lib/helpers';
 
 interface Props {
   campaigns: Campaign[];
@@ -8,11 +8,70 @@ interface Props {
   onGoTo: (page: string) => void;
 }
 
+function yesterdayStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
+function totalsForDate(entries: Entry[], date: string) {
+  const dayEntries = entries.filter(e => e.date === date);
+  const spend = dayEntries.reduce((s, e) => s + (e.spend || 0), 0);
+  const revenue = dayEntries.reduce((s, e) => s + (e.revenue || 0), 0);
+  const clicks = dayEntries.reduce((s, e) => s + (e.adclicks || 0), 0);
+  return { spend, revenue, profit: revenue - spend, clicks, count: dayEntries.length };
+}
+
+function delta(now: number, prev: number) {
+  const diff = now - prev;
+  let pct = 0;
+  if (prev !== 0) pct = (diff / Math.abs(prev)) * 100;
+  else if (now !== 0) pct = 100;
+  return { diff, pct };
+}
+
+interface DeltaCardProps {
+  label: string;
+  value: string;
+  prevValue: string;
+  delta: { diff: number; pct: number };
+  isMoney?: boolean;
+  invertColor?: boolean;
+  color: string;
+}
+
+function DeltaCard({ label, value, prevValue, delta: d, isMoney, invertColor, color }: DeltaCardProps) {
+  const positive = invertColor ? d.diff < 0 : d.diff > 0;
+  const negative = invertColor ? d.diff > 0 : d.diff < 0;
+  const deltaColor = d.diff === 0 ? 'var(--t3)' : positive ? 'var(--g)' : negative ? 'var(--r)' : 'var(--t3)';
+  const arrow = d.diff === 0 ? '·' : d.diff > 0 ? '↑' : '↓';
+  const sign = d.diff > 0 ? '+' : '';
+  const deltaTxt = isMoney ? sign + fRp(d.diff) : sign + fN(d.diff);
+
+  return (
+    <div className="day-card">
+      <div className="day-card-label">{label}</div>
+      <div className="day-card-val" style={{ color }}>{value}</div>
+      <div className="day-card-delta" style={{ color: deltaColor }}>
+        <span className="day-card-arrow">{arrow}</span>
+        <span>{deltaTxt}</span>
+        <span className="day-card-pct">({sign}{d.pct.toFixed(1)}%)</span>
+      </div>
+      <div className="day-card-prev">Kemarin: {prevValue}</div>
+    </div>
+  );
+}
+
 export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) {
   const totalSpend = entries.reduce((s, e) => s + (e.spend || 0), 0);
   const totalRevenue = entries.reduce((s, e) => s + (e.revenue || 0), 0);
   const netProfit = totalRevenue - totalSpend;
   const roi = totalSpend > 0 ? (netProfit / totalSpend) * 100 : 0;
+
+  const today = todayStr();
+  const yest = yesterdayStr();
+  const td = totalsForDate(entries, today);
+  const yd = totalsForDate(entries, yest);
 
   const modalNum = goals.modal || 0;
   const pctBalik = modalNum > 0 ? Math.min(100, Math.max(0, (netProfit / modalNum) * 100)) : 0;
@@ -37,6 +96,88 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
         <p>Ringkasan performa paid traffic &amp; Adsense</p>
       </div>
 
+      {/* Minimal Modal Strip */}
+      {modalNum > 0 ? (
+        <div className="modal-strip" onClick={() => onGoTo('analytics')}>
+          <div className="modal-strip-left">
+            <div className="modal-strip-icon" style={{ background: sudahBalik ? 'rgba(0,217,139,0.12)' : 'rgba(139,124,248,0.12)', color: sudahBalik ? 'var(--g)' : 'var(--p)' }}>
+              {sudahBalik ? '✓' : '%'}
+            </div>
+            <div>
+              <div className="modal-strip-title">{sudahBalik ? 'Modal Sudah Balik' : 'Balik Modal'}</div>
+              <div className="modal-strip-sub">
+                {fRp(Math.max(0, netProfit))} dari {fRp(modalNum)}
+                {!sudahBalik && <> · sisa <strong style={{color:'var(--a)'}}>{fRp(sisaBEP)}</strong></>}
+              </div>
+            </div>
+          </div>
+          <div className="modal-strip-right">
+            <div className="modal-strip-pct" style={{ color: sudahBalik ? 'var(--g)' : 'var(--p)' }}>{pctBalik.toFixed(1)}%</div>
+            <div className="modal-strip-bar">
+              <div className="modal-strip-fill" style={{ width: `${pctBalik}%`, background: sudahBalik ? 'var(--g)' : 'var(--p)' }} />
+            </div>
+            <div className="modal-strip-link">Detail di Analitik →</div>
+          </div>
+        </div>
+      ) : (
+        <div className="modal-strip-empty" onClick={() => onGoTo('modal')}>
+          <span>💡 Set modal awal untuk tracker balik modal</span>
+          <span className="modal-strip-link">Atur sekarang →</span>
+        </div>
+      )}
+
+      {/* Hari Ini vs Kemarin - Adsense style */}
+      <div className="card">
+        <div className="card-h">
+          <span className="card-h-title">Performa Hari Ini</span>
+          <span className="card-h-tag">vs Kemarin</span>
+        </div>
+        <div className="card-b" style={{ padding: 0 }}>
+          {td.count === 0 && yd.count === 0 ? (
+            <div className="empty" style={{ padding: '32px 20px' }}>
+              Belum ada entri hari ini atau kemarin.<br/>
+              <span style={{ color: 'var(--p)', cursor: 'pointer', fontWeight: 600 }} onClick={() => onGoTo('entry')}>+ Catat sekarang</span>
+            </div>
+          ) : (
+            <div className="day-grid">
+              <DeltaCard
+                label="Profit Bersih"
+                value={fRp(td.profit)}
+                prevValue={fRp(yd.profit)}
+                delta={delta(td.profit, yd.profit)}
+                isMoney
+                color={td.profit >= 0 ? 'var(--g)' : 'var(--r)'}
+              />
+              <DeltaCard
+                label="Penghasilan Adsense"
+                value={fRp(td.revenue)}
+                prevValue={fRp(yd.revenue)}
+                delta={delta(td.revenue, yd.revenue)}
+                isMoney
+                color="var(--g)"
+              />
+              <DeltaCard
+                label="Spend Iklan"
+                value={fRp(td.spend)}
+                prevValue={fRp(yd.spend)}
+                delta={delta(td.spend, yd.spend)}
+                isMoney
+                invertColor
+                color="var(--r)"
+              />
+              <DeltaCard
+                label="Klik Iklan"
+                value={fN(td.clicks)}
+                prevValue={fN(yd.clicks)}
+                delta={delta(td.clicks, yd.clicks)}
+                color="var(--b)"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Total Stats */}
       <div className="sg4">
         <div className="sc">
           <div className="sc-accent" style={{ background: 'var(--r)' }} />
@@ -61,59 +202,6 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
           <div className="sc-label">ROI</div>
           <div className="sc-val" style={{ color: roiColor }}>{roi.toFixed(2)}%</div>
           <div className="sc-sub">Profit ÷ Spend × 100</div>
-        </div>
-      </div>
-
-      {/* Modal Awal Tracker */}
-      <div className="card">
-        <div className="card-h">
-          <span className="card-h-title">Tracker Balik Modal</span>
-          {modalNum > 0 ? (
-            <span className="card-h-tag" style={{ color: sudahBalik ? 'var(--g)' : 'var(--a)' }}>
-              {sudahBalik ? '✓ BEP Tercapai' : 'Belum BEP'}
-            </span>
-          ) : <span className="card-h-tag">—</span>}
-        </div>
-        <div className="card-b">
-          {modalNum === 0 ? (
-            <div className="d-ms-empty">
-              Belum set modal awal.{' '}
-              <span onClick={() => onGoTo('modal')}>Set modal awal dulu →</span>
-            </div>
-          ) : (
-            <>
-              <div className="modal-bar">
-                <div className="modal-bar-item">
-                  <span className="modal-bar-label">Modal Awal</span>
-                  <span className="modal-bar-val" style={{ color: 'var(--p)' }}>{fRp(modalNum)}</span>
-                </div>
-                <div className="modal-bar-item">
-                  <span className="modal-bar-label">Profit Bersih</span>
-                  <span className="modal-bar-val" style={{ color: netProfit >= 0 ? 'var(--g)' : 'var(--r)' }}>
-                    {netProfit >= 0 ? '+' : ''}{fRp(netProfit)}
-                  </span>
-                </div>
-                <div className="modal-bar-item">
-                  <span className="modal-bar-label">Sisa BEP</span>
-                  <span className="modal-bar-val" style={{ color: sudahBalik ? 'var(--g)' : 'var(--a)' }}>
-                    {sudahBalik ? 'Lunas ✓' : fRp(sisaBEP)}
-                  </span>
-                </div>
-              </div>
-              <div style={{ marginTop: 14 }}>
-                <div className="d-ms-prog-track" style={{ height: 10 }}>
-                  <div className="d-ms-prog-fill" style={{
-                    width: `${pctBalik}%`,
-                    background: sudahBalik ? 'var(--g)' : 'var(--p)'
-                  }} />
-                </div>
-                <div className="d-ms-prog-row" style={{ marginTop: 6 }}>
-                  <span className="d-ms-prog-txt" style={{ fontSize: 12 }}>{pctBalik.toFixed(1)}% balik modal</span>
-                  <span className="d-ms-prog-txt" style={{ fontSize: 12 }}>{fRp(Math.max(0, netProfit))} / {fRp(modalNum)}</span>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
 

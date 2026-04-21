@@ -274,6 +274,65 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
 .topbar-profile-name{font-size:11px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;display:block}
 .topbar-profile-switch{font-size:10px;color:var(--t3);white-space:nowrap;display:block}
 
+/* MODAL STRIP (Dashboard minimal) */
+.modal-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px;background:linear-gradient(135deg,rgba(139,124,248,0.08),rgba(139,124,248,0.03));border:1px solid rgba(139,124,248,0.18);border-radius:var(--rad);margin-bottom:14px;cursor:pointer;transition:all 0.2s}
+.modal-strip:hover{border-color:rgba(139,124,248,0.35);background:linear-gradient(135deg,rgba(139,124,248,0.12),rgba(139,124,248,0.05))}
+.modal-strip-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.modal-strip-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.modal-strip-title{font-size:12px;font-weight:700;color:var(--t1);letter-spacing:-0.2px}
+.modal-strip-sub{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.modal-strip-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:130px}
+.modal-strip-pct{font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1}
+.modal-strip-bar{width:100px;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+.modal-strip-fill{height:100%;border-radius:3px;transition:width 0.6s cubic-bezier(.4,0,.2,1)}
+.modal-strip-link{font-size:10px;color:var(--p);font-weight:600}
+.modal-strip-empty{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 16px;background:rgba(255,170,0,0.06);border:1px dashed rgba(255,170,0,0.25);border-radius:var(--rad);margin-bottom:14px;cursor:pointer;font-size:12px;color:var(--t2);transition:all 0.2s}
+.modal-strip-empty:hover{background:rgba(255,170,0,0.1);border-color:rgba(255,170,0,0.4)}
+.modal-strip-empty .modal-strip-link{color:var(--a)}
+
+/* DAY COMPARISON CARDS (Adsense style) */
+.day-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.day-card{padding:18px 20px;border-right:1px solid rgba(255,255,255,0.04);transition:background 0.2s}
+.day-card:last-child{border-right:none}
+.day-card:hover{background:rgba(255,255,255,0.02)}
+.day-card-label{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px}
+.day-card-val{font-size:20px;font-weight:700;letter-spacing:-0.5px;font-family:'JetBrains Mono',monospace;line-height:1;margin-bottom:8px}
+.day-card-delta{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.day-card-arrow{font-size:14px;font-weight:800;line-height:1}
+.day-card-pct{font-size:10px;opacity:0.85}
+.day-card-prev{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+
+/* BEP CARD - Adsense pretty style */
+.bep-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);border-radius:18px;padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden}
+.bep-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--p),var(--tc),var(--g))}
+.bep-header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:20px}
+.bep-title{font-size:16px;font-weight:700;color:var(--t1);letter-spacing:-0.4px}
+.bep-subtitle{font-size:12px;color:var(--t3);margin-top:3px}
+.bep-status{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:6px 14px;border-radius:100px;flex-shrink:0}
+.bep-status.done{background:rgba(0,217,139,0.15);color:var(--g);border:1px solid rgba(0,217,139,0.3)}
+.bep-status.progress{background:rgba(139,124,248,0.15);color:var(--p);border:1px solid rgba(139,124,248,0.3)}
+.bep-metrics{display:flex;align-items:stretch;justify-content:space-between;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:16px 0;margin-bottom:18px}
+.bep-metric{flex:1;text-align:center;padding:0 18px}
+.bep-metric-label{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px}
+.bep-metric-val{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-0.4px;line-height:1}
+.bep-metric-sep{width:1px;background:rgba(255,255,255,0.06)}
+.bep-progress-wrap{margin-bottom:22px}
+.bep-progress-track{height:12px;background:rgba(255,255,255,0.05);border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.04)}
+.bep-progress-fill{height:100%;border-radius:6px;transition:width 0.8s cubic-bezier(.4,0,.2,1);box-shadow:0 0 12px rgba(139,124,248,0.4)}
+.bep-progress-labels{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+.bep-projection{background:rgba(139,124,248,0.04);border:1px solid rgba(139,124,248,0.15);border-radius:12px;padding:16px 18px}
+.bep-proj-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;color:var(--p);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;flex-wrap:wrap}
+.bep-proj-header svg{flex-shrink:0}
+.bep-proj-tag{margin-left:auto;font-size:10px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;font-family:'JetBrains Mono',monospace}
+.bep-proj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bep-proj-item{padding:14px 16px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.04);border-radius:10px}
+.bep-proj-item.highlight{background:linear-gradient(135deg,rgba(139,124,248,0.1),rgba(139,124,248,0.04));border-color:rgba(139,124,248,0.3)}
+.bep-proj-label{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:6px}
+.bep-proj-big{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--t1);line-height:1.1;letter-spacing:-0.3px}
+.bep-proj-sub{font-size:10px;color:var(--t3);margin-top:4px;font-family:'JetBrains Mono',monospace}
+.bep-proj-done{padding:14px;text-align:center;background:rgba(0,217,139,0.08);border:1px solid rgba(0,217,139,0.2);border-radius:10px;color:var(--g);font-size:14px;font-weight:600}
+.bep-proj-warn{padding:14px;background:rgba(255,170,0,0.06);border:1px solid rgba(255,170,0,0.2);border-radius:10px;color:var(--a);font-size:13px;line-height:1.6}
+
 /* PROFILE SELECT PAGE */
 .profile-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}
 .profile-box{width:100%;max-width:480px;background:var(--s1);border:1px solid var(--brd);border-radius:20px;padding:28px 28px 24px;box-shadow:0 24px 80px rgba(0,0,0,0.6)}
@@ -356,6 +415,17 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
   .topbar-logout{padding:6px 10px}
   .rate-inline-badge{font-size:9px;padding:2px 7px}
   .card-b{padding:14px}
+  .day-grid{grid-template-columns:repeat(2,1fr)}
+  .day-card{border-right:none;border-bottom:1px solid rgba(255,255,255,0.04)}
+  .day-card:nth-child(odd){border-right:1px solid rgba(255,255,255,0.04)}
+  .day-card:nth-last-child(-n+2){border-bottom:none}
+  .bep-metrics{flex-direction:column;padding:0}
+  .bep-metric{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.05)}
+  .bep-metric:last-child{border-bottom:none}
+  .bep-metric-sep{display:none}
+  .bep-proj-grid{grid-template-columns:1fr}
+  .bep-card{padding:18px 18px}
+  .bep-proj-tag{margin-left:0;width:100%}
 }
 @media(max-width:440px){
   .sg4{gap:8px}.sc{padding:14px 12px}.sc-val{font-size:16px}
@@ -367,4 +437,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
   .ads-3col .fg:last-child{grid-column:1/-1}
   .entry-top-grid{grid-template-columns:1fr}
   .login-box{padding:28px 20px}
+  .modal-strip{flex-direction:column;align-items:flex-start;gap:10px}
+  .modal-strip-right{align-items:flex-start;width:100%}
+  .modal-strip-bar{width:100%}
+  .day-card-val{font-size:16px}
+  .bep-metric-val{font-size:15px}
+  .bep-proj-big{font-size:14px}
 }
