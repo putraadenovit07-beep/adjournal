@@ -31,8 +31,9 @@ export function buildEntryMessage(opts: {
   campaign: Campaign | undefined;
   entry: Omit<Entry, 'id'>;
   isEdit: boolean;
+  allEntries?: Entry[];
 }): string {
-  const { profileName, campaign, entry, isEdit } = opts;
+  const { profileName, campaign, entry, isEdit, allEntries } = opts;
   const profit = (entry.revenue || 0) - (entry.spend || 0);
   const roi = entry.spend ? (profit / entry.spend) * 100 : 0;
   const profitIcon = profit > 0 ? '🟢' : profit < 0 ? '🔴' : '⚪';
@@ -54,6 +55,31 @@ export function buildEntryMessage(opts: {
     `🖱 Klik: \`${escapeMd(fN(entry.adclicks || 0))}\``,
   ];
   if (entry.note) lines.push('', `📝 _${escapeMd(entry.note)}_`);
+
+  // Summary (all-time totals across the profile)
+  if (allEntries && allEntries.length > 0) {
+    const dates = allEntries.map(e => e.date).filter(Boolean).sort();
+    const dateMin = dates[0] || '-';
+    const dateMax = dates[dates.length - 1] || '-';
+    let totSpend = 0, totRev = 0;
+    for (const e of allEntries) { totSpend += e.spend || 0; totRev += e.revenue || 0; }
+    const totProfit = totRev - totSpend;
+    const totRoi = totSpend ? (totProfit / totSpend) * 100 : 0;
+    const totIcon = totProfit > 0 ? '🟢' : totProfit < 0 ? '🔴' : '⚪';
+
+    lines.push(
+      '',
+      `━━━━━━━━━━━━━━`,
+      `📊 *Ringkasan Keseluruhan*`,
+      `🗓 Periode: \`${escapeMd(dateMin)}\` → \`${escapeMd(dateMax)}\``,
+      `💸 Total Spend: \`${escapeMd(fRp(totSpend))}\``,
+      `💰 Total Penghasilan: \`${escapeMd(fRp(totRev))}\``,
+      `${totIcon} Profit Bersih: \`${escapeMd((totProfit >= 0 ? '+' : '') + fRp(totProfit))}\``,
+      `📈 ROI Total: \`${escapeMd((totRoi >= 0 ? '+' : '') + totRoi.toFixed(2) + '%')}\``,
+      `📂 Jumlah Entri: \`${escapeMd(String(allEntries.length))}\``,
+    );
+  }
+
   return lines.join('\n');
 }
 

@@ -207,7 +207,7 @@ export default function App() {
     // Telegram alert
     if (settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId && activeProfile) {
       const cp = campaigns.find(c => String(c.id) === String(data.campaignId));
-      const msg = buildEntryMessage({ profileName: activeProfile, campaign: cp, entry: data, isEdit: !!editId });
+      const msg = buildEntryMessage({ profileName: activeProfile, campaign: cp, entry: data, isEdit: !!editId, allEntries: updated });
       sendTelegram(msg, settings)
         .then(() => showToast('info', '📨 Alert Telegram terkirim'))
         .catch(err => showToast('err', '❌ Telegram gagal: ' + (err?.message || 'cek token/chat ID')));
