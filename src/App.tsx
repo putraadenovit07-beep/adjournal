@@ -92,6 +92,17 @@ export default function App() {
     setPage('dashboard');
   }
 
+  function handleDeleteProfile(profileName: string, updatedGist: GistData) {
+    setGistData(updatedGist);
+    if (activeProfile === profileName) {
+      setActiveProfile(null);
+      setCampaigns([]);
+      setEntries([]);
+      setGoals(EMPTY_GOALS);
+    }
+    writeDb(updatedGist).catch(() => {});
+  }
+
   function handleLogout() {
     clearToken();
     setLoggedIn(false);
@@ -204,6 +215,7 @@ export default function App() {
         gistData={gistData || { profiles: {}, version: 0 }}
         onSelect={handleSelectProfile}
         onLogout={handleLogout}
+        onDeleteProfile={handleDeleteProfile}
       />
     );
   }

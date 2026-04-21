@@ -7,6 +7,7 @@ interface Props {
   gistData: GistData;
   onSelect: (profileName: string, profileData: ProfileData, updatedGist: GistData) => void;
   onLogout: () => void;
+  onDeleteProfile: (profileName: string, updatedGist: GistData) => void;
 }
 
 const PROFILE_COLORS = [
@@ -24,16 +25,25 @@ function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function ProfileSelect({ username, gistData, onSelect, onLogout }: Props) {
+export default function ProfileSelect({ username, gistData, onSelect, onLogout, onDeleteProfile }: Props) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const profiles = Object.keys(gistData.profiles);
 
   function handleSelect(name: string) {
     const profileData = gistData.profiles[name] || { ...EMPTY_PROFILE };
     onSelect(name, profileData, gistData);
+  }
+
+  function handleConfirmDelete(name: string) {
+    const newProfiles = { ...gistData.profiles };
+    delete newProfiles[name];
+    const updated: GistData = { ...gistData, profiles: newProfiles, version: Date.now() };
+    setConfirmDelete(null);
+    onDeleteProfile(name, updated);
   }
 
   function handleCreate() {
@@ -76,18 +86,28 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout }
             const entryCount = (p?.entries || []).length;
             const cpCount = (p?.campaigns || []).length;
             return (
-              <button key={name} className="profile-card" onClick={() => handleSelect(name)}>
-                <div className="profile-avatar" style={{ background: color + '22', border: `2px solid ${color}44`, color }}>
-                  {getInitials(name)}
-                </div>
-                <div className="profile-card-info">
-                  <div className="profile-card-name">{name}</div>
-                  <div className="profile-card-meta">
-                    {cpCount} campaign · {entryCount} entri
+              <div key={name} className="profile-card-wrap">
+                <button className="profile-card" onClick={() => handleSelect(name)}>
+                  <div className="profile-avatar" style={{ background: color + '22', border: `2px solid ${color}44`, color }}>
+                    {getInitials(name)}
                   </div>
-                </div>
-                <svg className="profile-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
+                  <div className="profile-card-info">
+                    <div className="profile-card-name">{name}</div>
+                    <div className="profile-card-meta">
+                      {cpCount} campaign · {entryCount} entri
+                    </div>
+                  </div>
+                  <svg className="profile-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <button
+                  className="profile-card-del"
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(name); }}
+                  title="Hapus akun"
+                  aria-label="Hapus akun"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </button>
+              </div>
             );
           })}
         </div>
@@ -120,6 +140,30 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout }
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Tambah Akun Baru
           </button>
+        )}
+
+        {confirmDelete && (
+          <div className="profile-confirm-backdrop" onClick={() => setConfirmDelete(null)}>
+            <div className="profile-confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="profile-confirm-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div className="profile-confirm-title">Hapus akun ini?</div>
+              <div className="profile-confirm-msg">
+                Akun <strong>{confirmDelete}</strong> akan dihapus permanen beserta semua campaign, entri, dan data modal-nya.
+                <br/><br/>
+                <span style={{ color: 'var(--r)', fontWeight: 600 }}>Tindakan ini tidak bisa dibatalkan.</span>
+              </div>
+              <div className="profile-confirm-acts">
+                <button className="profile-confirm-no" onClick={() => setConfirmDelete(null)}>
+                  Tidak, Batal
+                </button>
+                <button className="profile-confirm-yes" onClick={() => handleConfirmDelete(confirmDelete)}>
+                  Ya, Hapus
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         <button className="profile-logout" onClick={onLogout}>

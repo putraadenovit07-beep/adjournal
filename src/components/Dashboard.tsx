@@ -14,6 +14,20 @@ function yesterdayStr(): string {
   return d.toISOString().split('T')[0];
 }
 
+function addDaysIso(date: string, days: number): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function calcAvgDailyProfit(entries: Entry[], today: string): { avg: number; sampleDays: number } {
+  const cutoff = addDaysIso(today, -7);
+  const recent = entries.filter(e => e.date >= cutoff && e.date <= today);
+  const profit = recent.reduce((s, e) => s + ((e.revenue || 0) - (e.spend || 0)), 0);
+  const days = new Set(recent.map(e => e.date)).size || 1;
+  return { avg: profit / days, sampleDays: days };
+}
+
 function totalsForDate(entries: Entry[], date: string) {
   const dayEntries = entries.filter(e => e.date === date);
   const spend = dayEntries.reduce((s, e) => s + (e.spend || 0), 0);
@@ -95,30 +109,60 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
         <p>Ringkasan performa paid traffic &amp; Adsense</p>
       </div>
 
-      {/* Minimal Modal Strip */}
-      {modalNum > 0 ? (
-        <div className="modal-strip" onClick={() => onGoTo('analytics')}>
-          <div className="modal-strip-left">
-            <div className="modal-strip-icon" style={{ background: sudahBalik ? 'rgba(0,217,139,0.12)' : 'rgba(139,124,248,0.12)', color: sudahBalik ? 'var(--g)' : 'var(--p)' }}>
-              {sudahBalik ? '✓' : '%'}
+      {/* BEP Compact Tracker */}
+      {modalNum > 0 ? (() => {
+        const { avg: avgDaily, sampleDays } = calcAvgDailyProfit(entries, today);
+        const canProject = !sudahBalik && avgDaily > 0;
+        const daysToBEP = canProject ? Math.ceil(sisaBEP / avgDaily) : null;
+        const etaDate = daysToBEP !== null ? addDaysIso(today, daysToBEP) : null;
+        const etaTxt = sudahBalik ? '✓ Tercapai' : !canProject ? '— hari' : `${daysToBEP} hari`;
+        return (
+          <div className={`bep-compact ${sudahBalik ? 'done' : 'progress'}`} onClick={() => onGoTo('analytics')}>
+            <div className="bep-compact-row">
+              <div className="bep-compact-cell">
+                <span className="bep-compact-lbl">Modal Awal</span>
+                <span className="bep-compact-val" style={{ color: 'var(--p)' }}>{fRp(modalNum)}</span>
+              </div>
+              <div className="bep-compact-cell">
+                <span className="bep-compact-lbl">Estimasi Balik Modal</span>
+                <span className="bep-compact-val" style={{ color: sudahBalik ? 'var(--g)' : canProject ? 'var(--tc)' : 'var(--t3)' }}>
+                  {etaTxt}
+                </span>
+              </div>
+              <div className="bep-compact-cell">
+                <span className="bep-compact-lbl">Profit Harian (rata-rata)</span>
+                <span className="bep-compact-val" style={{ color: avgDaily >= 0 ? 'var(--g)' : 'var(--r)' }}>
+                  {avgDaily >= 0 ? '+' : ''}{fRp(avgDaily)}
+                </span>
+                <span className="bep-compact-sub">{sampleDays}h aktif</span>
+              </div>
+              <div className="bep-compact-cell">
+                <span className="bep-compact-lbl">Sisa BEP</span>
+                <span className="bep-compact-val" style={{ color: sudahBalik ? 'var(--g)' : 'var(--a)' }}>
+                  {sudahBalik ? 'Rp 0' : fRp(sisaBEP)}
+                </span>
+              </div>
             </div>
-            <div>
-              <div className="modal-strip-title">{sudahBalik ? 'Modal Sudah Balik' : 'Balik Modal'}</div>
-              <div className="modal-strip-sub">
-                {fRp(Math.max(0, netProfit))} dari {fRp(modalNum)}
-                {!sudahBalik && <> · sisa <strong style={{color:'var(--a)'}}>{fRp(sisaBEP)}</strong></>}
+            <div className="bep-compact-bar-wrap">
+              <div className="bep-compact-bar-track">
+                <div className="bep-compact-bar-fill" style={{
+                  width: `${pctBalik}%`,
+                  background: sudahBalik ? 'linear-gradient(90deg, var(--g), var(--tc))' : 'linear-gradient(90deg, var(--p), #b8acff)'
+                }} />
+              </div>
+              <div className="bep-compact-bar-meta">
+                <span className="bep-compact-bar-pct" style={{ color: sudahBalik ? 'var(--g)' : 'var(--p)' }}>
+                  {pctBalik.toFixed(1)}% balik modal
+                </span>
+                {etaDate && !sudahBalik && (
+                  <span className="bep-compact-bar-eta">≈ {etaDate}</span>
+                )}
+                <span className="bep-compact-link">Detail →</span>
               </div>
             </div>
           </div>
-          <div className="modal-strip-right">
-            <div className="modal-strip-pct" style={{ color: sudahBalik ? 'var(--g)' : 'var(--p)' }}>{pctBalik.toFixed(1)}%</div>
-            <div className="modal-strip-bar">
-              <div className="modal-strip-fill" style={{ width: `${pctBalik}%`, background: sudahBalik ? 'var(--g)' : 'var(--p)' }} />
-            </div>
-            <div className="modal-strip-link">Detail di Analitik →</div>
-          </div>
-        </div>
-      ) : (
+        );
+      })() : (
         <div className="modal-strip-empty" onClick={() => onGoTo('modal')}>
           <span>💡 Set modal awal untuk tracker balik modal</span>
           <span className="modal-strip-link">Atur sekarang →</span>
