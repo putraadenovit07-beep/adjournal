@@ -3,8 +3,8 @@ import './index.css';
 import type { Campaign, Entry, Goals } from './lib/storage';
 import { formatDate } from './lib/helpers';
 import { getToken, clearToken, getUsername, getLastProfile, setLastProfile } from './lib/auth';
-import { writeDb, loginWithToken, EMPTY_PROFILE } from './lib/github-db';
-import type { GistData, ProfileData } from './lib/github-db';
+import { writeDb, loginWithToken, EMPTY_PROFILE, EMPTY_SETTINGS } from './lib/github-db';
+import type { GistData, ProfileData, ProfileSettings } from './lib/github-db';
 import Login from './components/Login';
 import ProfileSelect from './components/ProfileSelect';
 import Dashboard from './components/Dashboard';
@@ -30,6 +30,7 @@ export default function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [goals, setGoals] = useState<Goals>(EMPTY_GOALS);
+  const [settings, setSettings] = useState<ProfileSettings>({ ...EMPTY_SETTINGS });
   const [editEntry, setEditEntry] = useState<Entry | null>(null);
   const [prefillCampaignId, setPrefillCampaignId] = useState<number | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'ok' | 'err'>('idle');
@@ -66,6 +67,7 @@ export default function App() {
     setCampaigns(profileData.campaigns || []);
     setEntries(profileData.entries || []);
     setGoals(profileData.goals || EMPTY_GOALS);
+    setSettings({ ...EMPTY_SETTINGS, ...(profileData.settings || {}) });
   }
 
   function handleLogin(user: string, data: GistData) {
@@ -114,14 +116,15 @@ export default function App() {
     setGoals(EMPTY_GOALS);
   }
 
-  const syncDb = useCallback(async (cams: Campaign[], ents: Entry[], gls: Goals, currentGist: GistData, profile: string) => {
+  const syncDb = useCallback(async (cams: Campaign[], ents: Entry[], gls: Goals, currentGist: GistData, profile: string, sett?: ProfileSettings) => {
     setSyncStatus('syncing');
     try {
+      const prevSettings = currentGist.profiles[profile]?.settings;
       const updated: GistData = {
         ...currentGist,
         profiles: {
           ...currentGist.profiles,
-          [profile]: { campaigns: cams, entries: ents, goals: gls }
+          [profile]: { campaigns: cams, entries: ents, goals: gls, settings: sett ?? prevSettings ?? { ...EMPTY_SETTINGS } }
         },
         version: Date.now(),
       };
@@ -134,6 +137,22 @@ export default function App() {
       setTimeout(() => setSyncStatus('idle'), 3000);
     }
   }, []);
+
+  function handleUpdateProfileSettings(profileName: string, newSettings: ProfileSettings) {
+    if (!gistData) return;
+    const existing = gistData.profiles[profileName] || { ...EMPTY_PROFILE };
+    const updated: GistData = {
+      ...gistData,
+      profiles: {
+        ...gistData.profiles,
+        [profileName]: { ...existing, settings: newSettings },
+      },
+      version: Date.now(),
+    };
+    setGistData(updated);
+    if (activeProfile === profileName) setSettings(newSettings);
+    writeDb(updated).catch(() => {});
+  }
 
   function goTo(p: Page) {
     setPage(p);
@@ -216,6 +235,7 @@ export default function App() {
         onSelect={handleSelectProfile}
         onLogout={handleLogout}
         onDeleteProfile={handleDeleteProfile}
+        onUpdateSettings={handleUpdateProfileSettings}
       />
     );
   }
@@ -248,7 +268,7 @@ export default function App() {
         </div>
       </div>
 
-      {page === 'dashboard' && <Dashboard campaigns={campaigns} entries={entries} goals={goals} onGoTo={goTo} />}
+      {page === 'dashboard' && <Dashboard campaigns={campaigns} entries={entries} goals={goals} settings={settings} onGoTo={goTo} />}
       {page === 'campaigns' && <Campaigns campaigns={campaigns} entries={entries} onAdd={addCampaign} onDelete={deleteCampaign} onQuickCatat={handleQuickCatat} />}
       {page === 'entry' && (
         <EntryForm campaigns={campaigns} editEntry={editEntry} prefillCampaignId={prefillCampaignId} onSave={handleSaveEntry} onCancel={handleCancelEdit} onGoToCampaigns={() => goTo('campaigns')} />

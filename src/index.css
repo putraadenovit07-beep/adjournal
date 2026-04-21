@@ -540,3 +540,23 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
   .bep-metric-val{font-size:15px}
   .bep-proj-big{font-size:14px}
 }
+
+/* Profile settings button + modal */
+.profile-card-set{display:flex;align-items:center;justify-content:center;width:42px;flex-shrink:0;background:var(--s2);border:1px solid var(--brd);border-radius:12px;color:var(--t3);cursor:pointer;transition:all 0.2s}
+.profile-card-set:hover{background:rgba(139,124,248,0.08);border-color:rgba(139,124,248,0.4);color:var(--p)}
+.profile-settings-modal{max-width:420px}
+.profile-settings-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.profile-settings-icon{width:44px;height:44px;border-radius:12px;background:rgba(139,124,248,0.12);color:var(--p);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.profile-settings-sub{font-size:12px;color:var(--t3);margin-top:4px}
+.profile-settings-section{background:var(--s2);border:1px solid var(--brd);border-radius:12px;padding:6px 14px;margin-bottom:18px}
+.profile-settings-section-title{font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3);font-weight:600;padding:10px 0 6px}
+.profile-settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--brd);cursor:pointer}
+.profile-settings-row:first-of-type{border-top:none}
+.profile-settings-row-info{flex:1;min-width:0}
+.profile-settings-row-name{font-size:14px;font-weight:600;color:var(--t1)}
+.profile-settings-row-desc{font-size:12px;color:var(--t3);margin-top:2px}
+.profile-toggle{position:relative;width:42px;height:24px;background:var(--brd);border-radius:999px;flex-shrink:0;cursor:pointer;transition:background 0.2s}
+.profile-toggle.on{background:var(--p)}
+.profile-toggle-knob{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.profile-toggle.on .profile-toggle-knob{transform:translateX(18px)}
+.profile-settings-save{background:var(--p) !important;color:#fff !important}

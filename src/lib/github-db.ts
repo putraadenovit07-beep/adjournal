@@ -4,10 +4,16 @@ import type { Campaign, Entry, Goals } from './storage';
 const GIST_FILENAME = 'adjournal-data.json';
 const GIST_DESC = 'AdJournal Database';
 
+export interface ProfileSettings {
+  hideModalAwal?: boolean;
+  hideRecentCampaigns?: boolean;
+}
+
 export interface ProfileData {
   campaigns: Campaign[];
   entries: Entry[];
   goals: Goals;
+  settings?: ProfileSettings;
 }
 
 export interface GistData {
@@ -17,10 +23,16 @@ export interface GistData {
 
 const EMPTY_GOALS: Goals = { modal: 0, start: '', milestones: [], locked: false };
 
+export const EMPTY_SETTINGS: ProfileSettings = {
+  hideModalAwal: false,
+  hideRecentCampaigns: false,
+};
+
 export const EMPTY_PROFILE: ProfileData = {
   campaigns: [],
   entries: [],
   goals: EMPTY_GOALS,
+  settings: { ...EMPTY_SETTINGS },
 };
 
 const EMPTY_GIST: GistData = { profiles: {}, version: 0 };

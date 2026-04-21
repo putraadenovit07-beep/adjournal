@@ -1,10 +1,12 @@
 import { Campaign, Entry, Goals } from '../lib/storage';
 import { fRp, fN, todayStr } from '../lib/helpers';
+import type { ProfileSettings } from '../lib/github-db';
 
 interface Props {
   campaigns: Campaign[];
   entries: Entry[];
   goals: Goals;
+  settings?: ProfileSettings;
   onGoTo: (page: string) => void;
 }
 
@@ -76,7 +78,9 @@ function DeltaCard({ label, value, prevValue, delta: d, isMoney, invertColor, co
   );
 }
 
-export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) {
+export default function Dashboard({ campaigns, entries, goals, settings, onGoTo }: Props) {
+  const hideModalAwal = !!settings?.hideModalAwal;
+  const hideRecentCampaigns = !!settings?.hideRecentCampaigns;
   const totalSpend = entries.reduce((s, e) => s + (e.spend || 0), 0);
   const totalRevenue = entries.reduce((s, e) => s + (e.revenue || 0), 0);
   const netProfit = totalRevenue - totalSpend;
@@ -110,7 +114,7 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
       </div>
 
       {/* BEP Compact Tracker */}
-      {modalNum > 0 ? (() => {
+      {!hideModalAwal && (modalNum > 0 ? (() => {
         const { avg: avgDaily, sampleDays } = calcAvgDailyProfit(entries, today);
         const canProject = !sudahBalik && avgDaily > 0;
         const daysToBEP = canProject ? Math.ceil(sisaBEP / avgDaily) : null;
@@ -167,7 +171,7 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
           <span>💡 Set modal awal untuk tracker balik modal</span>
           <span className="modal-strip-link">Atur sekarang →</span>
         </div>
-      )}
+      ))}
 
       {/* Hari Ini vs Kemarin - Adsense style */}
       <div className="card">
@@ -257,31 +261,33 @@ export default function Dashboard({ campaigns, entries, goals, onGoTo }: Props) 
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-h">
-          <span className="card-h-title">Campaign Terbaru</span>
-        </div>
-        <div className="card-b">
-          {recentCampaigns.length === 0 ? (
-            <div className="empty">Belum ada kampanye.</div>
-          ) : (
-            recentCampaigns.map(cp => (
-              <div key={cp.id} className="camp-item">
-                <div>
-                  <div className="camp-name">{cp.name}</div>
-                  <div className="camp-date">{cp.platform}{cp.startdate ? ` · ${cp.startdate}` : ''}</div>
-                </div>
-                <div className="camp-right">
-                  <div className="camp-val" style={{ color: cp.profit >= 0 ? 'var(--g)' : 'var(--r)' }}>
-                    {cp.profit >= 0 ? '+' : ''}{fRp(cp.profit)}
+      {!hideRecentCampaigns && (
+        <div className="card">
+          <div className="card-h">
+            <span className="card-h-title">Campaign Terbaru</span>
+          </div>
+          <div className="card-b">
+            {recentCampaigns.length === 0 ? (
+              <div className="empty">Belum ada kampanye.</div>
+            ) : (
+              recentCampaigns.map(cp => (
+                <div key={cp.id} className="camp-item">
+                  <div>
+                    <div className="camp-name">{cp.name}</div>
+                    <div className="camp-date">{cp.platform}{cp.startdate ? ` · ${cp.startdate}` : ''}</div>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>{cp.entries} entri</div>
+                  <div className="camp-right">
+                    <div className="camp-val" style={{ color: cp.profit >= 0 ? 'var(--g)' : 'var(--r)' }}>
+                      {cp.profit >= 0 ? '+' : ''}{fRp(cp.profit)}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--t3)' }}>{cp.entries} entri</div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
