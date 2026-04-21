@@ -688,3 +688,58 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
 [data-theme="adsense"] .profile-confirm-icon,
 [data-theme="adsense"] .profile-settings-icon{background:#e8f0fe;color:#1a73e8}
 [data-theme="adsense"] .profile-settings-save{background:#1a73e8 !important}
+
+/* === Adsense theme: hero cards blue-filled (like Adsense estimated earnings card) === */
+[data-theme="adsense"] .bep-compact{
+  background:linear-gradient(135deg,#1a73e8,#1765c1) !important;
+  border:none !important;
+  color:#fff !important;
+  box-shadow:0 1px 3px rgba(26,115,232,0.3) !important;
+}
+[data-theme="adsense"] .bep-compact.done{
+  background:linear-gradient(135deg,#137333,#0f5c28) !important;
+}
+[data-theme="adsense"] .bep-compact-lbl{color:rgba(255,255,255,0.78) !important}
+[data-theme="adsense"] .bep-compact-val,
+[data-theme="adsense"] .bep-compact-sub,
+[data-theme="adsense"] .bep-compact-bar-pct,
+[data-theme="adsense"] .bep-compact-bar-eta,
+[data-theme="adsense"] .bep-compact-link{color:#fff !important}
+[data-theme="adsense"] .bep-compact-bar-track{background:rgba(255,255,255,0.22) !important}
+[data-theme="adsense"] .bep-compact-bar-fill{background:#fff !important}
+
+[data-theme="adsense"] .mosaic-hero{
+  background:linear-gradient(135deg,#1a73e8,#1765c1) !important;
+  border:none !important;
+  color:#fff !important;
+  box-shadow:0 1px 3px rgba(26,115,232,0.3) !important;
+}
+[data-theme="adsense"] .mosaic-hero.neg{
+  background:linear-gradient(135deg,#c5221f,#a52320) !important;
+}
+[data-theme="adsense"] .mosaic-hero-label{color:rgba(255,255,255,0.85) !important}
+[data-theme="adsense"] .mosaic-hero-val{color:#fff !important}
+[data-theme="adsense"] .mosaic-hero-foot{color:rgba(255,255,255,0.78) !important}
+[data-theme="adsense"] .mosaic-hero-roi{background:rgba(255,255,255,0.18) !important;color:#fff !important}
+[data-theme="adsense"] .mosaic-hero-dot{background:#fff !important}
+
+/* Smaller white cards: keep light, but force colored values to dark/blue */
+[data-theme="adsense"] .day-card{background:#fff !important;border:1px solid #e8eaed !important}
+[data-theme="adsense"] .day-card-label{color:#5f6368 !important;font-weight:500;text-transform:none;font-size:11px;letter-spacing:0}
+[data-theme="adsense"] .day-card-val{color:#202124 !important;font-family:'Google Sans','Roboto',sans-serif !important}
+[data-theme="adsense"] .day-card-prev{color:#80868b !important}
+[data-theme="adsense"] .mosaic-mini{background:#fff !important;border:1px solid #e8eaed !important}
+[data-theme="adsense"] .mosaic-mini-label{color:#5f6368 !important;font-weight:500}
+[data-theme="adsense"] .mosaic-mini-val{color:#202124 !important;font-family:'Google Sans','Roboto',sans-serif !important}
+[data-theme="adsense"] .mosaic-mini-val.cg{color:#137333 !important}
+[data-theme="adsense"] .mosaic-mini-val.cr{color:#c5221f !important}
+
+/* Regular card text in adsense */
+[data-theme="adsense"] .card{background:#fff !important;border:1px solid #dadce0 !important;border-radius:8px !important}
+[data-theme="adsense"] .card-h-title{font-family:'Google Sans','Roboto',sans-serif;font-weight:500;font-size:14px}
+[data-theme="adsense"] .card-h-tag{background:#e8f0fe;color:#1a73e8;border:none}
+[data-theme="adsense"] .camp-val{font-family:'Google Sans','Roboto',sans-serif !important}
+
+/* Page heading */
+[data-theme="adsense"] .ph h1{font-family:'Google Sans','Roboto',sans-serif;font-weight:400;font-size:22px;color:#202124}
+[data-theme="adsense"] .ph p{color:#5f6368;font-size:13px}
