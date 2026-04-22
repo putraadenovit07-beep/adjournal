@@ -4,6 +4,7 @@ import { EMPTY_PROFILE, EMPTY_SETTINGS } from '../lib/github-db';
 import { testTelegram, fetchChatIdFromBot } from '../lib/telegram';
 import { fRp } from '../lib/helpers';
 import { fetchUsdToIdr, getCachedRate } from '../lib/currency';
+import { getToken } from '../lib/auth';
 import type { Goals } from '../lib/storage';
 
 interface Props {
@@ -67,6 +68,31 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
   const [gmOrder, setGmOrder] = useState<string[]>([]);
   const [gmSaved, setGmSaved] = useState(false);
   const [usdRate, setUsdRate] = useState(getCachedRate());
+  const [showToken, setShowToken] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const savedToken = getToken();
+
+  async function copyToken() {
+    if (!savedToken) return;
+    try {
+      await navigator.clipboard.writeText(savedToken);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = savedToken;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 1800);
+  }
+
+  function maskToken(t: string): string {
+    if (!t) return '';
+    if (t.length <= 12) return t;
+    return `${t.slice(0, 7)}${'•'.repeat(Math.max(8, t.length - 11))}${t.slice(-4)}`;
+  }
 
   useEffect(() => {
     fetchUsdToIdr().then(r => setUsdRate(r));
@@ -627,6 +653,106 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                 <button className="profile-confirm-no" onClick={() => setSettingsFor(null)}>Tutup</button>
                 <button className="profile-confirm-yes profile-settings-save" onClick={saveSettings}>Simpan Tampilan</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {savedToken && (
+          <div style={{
+            marginBottom: 10,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--brd)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+                GitHub Token Tersimpan
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowToken(s => !s)}
+                style={{
+                  background: 'none', border: '1px solid var(--brd)', cursor: 'pointer',
+                  color: 'var(--t2)', fontSize: 11, padding: '3px 8px', borderRadius: 6,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}
+                aria-label={showToken ? 'Sembunyikan token' : 'Tampilkan token'}
+              >
+                {showToken ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                    Sembunyikan
+                  </>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Lihat
+                  </>
+                )}
+              </button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <code style={{
+                flex: 1, minWidth: 0,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                color: 'var(--t2)',
+                background: 'rgba(0,0,0,0.25)',
+                padding: '6px 8px',
+                borderRadius: 6,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                userSelect: showToken ? 'all' : 'none',
+              }}>
+                {showToken ? savedToken : maskToken(savedToken)}
+              </code>
+              <button
+                type="button"
+                onClick={copyToken}
+                title="Salin token"
+                style={{
+                  background: tokenCopied ? 'var(--g)' : 'var(--p)',
+                  color: tokenCopied ? '#000' : '#fff',
+                  border: 'none', cursor: 'pointer',
+                  padding: '6px 10px', borderRadius: 6,
+                  fontSize: 11, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  flexShrink: 0,
+                  transition: 'background 0.2s',
+                }}
+              >
+                {tokenCopied ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Tersalin
+                  </>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                    </svg>
+                    Salin
+                  </>
+                )}
+              </button>
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 6, lineHeight: 1.4 }}>
+              Simpan token di tempat aman. Jangan bagikan ke siapa pun.
             </div>
           </div>
         )}
