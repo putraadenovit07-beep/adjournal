@@ -247,8 +247,8 @@ export default function App() {
   // Save entire GistData (used by global modal feature)
   function handleSaveGistData(updatedGist: GistData) {
     setGistData(updatedGist);
-    // If global modal is active, sync the active profile's goals locally
-    if (updatedGist.globalModal?.enabled && activeProfile) {
+    // Sync active profile goals (per-akun or global cascade)
+    if (activeProfile) {
       const updatedProfile = updatedGist.profiles[activeProfile];
       if (updatedProfile?.goals) {
         setGoals(updatedProfile.goals);
@@ -320,6 +320,7 @@ export default function App() {
         onLogout={handleLogout}
         onDeleteProfile={handleDeleteProfile}
         onUpdateSettings={handleUpdateProfileSettings}
+        onSaveGistData={handleSaveGistData}
       />
     );
   }
@@ -363,11 +364,7 @@ export default function App() {
           goals={goals}
           entries={entries}
           payouts={payouts}
-          onSave={handleSaveGoals}
           onSavePayouts={handleSavePayouts}
-          gistData={gistData}
-          activeProfile={activeProfile}
-          onSaveGistData={handleSaveGistData}
         />
       )}
       {page === 'analytics' && <Analytics campaigns={campaigns} entries={entries} goals={goals} />}
