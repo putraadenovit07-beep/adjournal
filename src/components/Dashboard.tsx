@@ -281,9 +281,10 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
                     </div>
                   </div>
                   {nextPending && (
-                    <div className="po-mini-next">
-                      Berikutnya: <strong>{nextPending.date}</strong> · {fRp(nextPending.amount)}
-                      {nextPending.bankName && ` → ${nextPending.bankName}`}
+                    <div className="po-mini-next" title={`Payout pending berikutnya: ${nextPending.date} · ${fRp(nextPending.amount)}${nextPending.bankName ? ' → ' + nextPending.bankName : ''}`}>
+                      <span className="po-mini-next-lbl">Berikut:</span>
+                      <strong>{nextPending.date}</strong>
+                      <span className="po-mini-next-amt">{fRp(nextPending.amount)}</span>
                     </div>
                   )}
                 </>

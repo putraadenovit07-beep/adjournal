@@ -6,6 +6,14 @@ function escapeMd(s: string): string {
   return s.replace(/[_*`\[\]()~>#+\-=|{}.!\\]/g, m => '\\' + m);
 }
 
+// Use application/x-www-form-urlencoded to avoid CORS preflight (which Telegram API
+// sometimes rejects, causing "Failed to fetch" in browsers).
+function tgBody(params: Record<string, string>): URLSearchParams {
+  const usp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) usp.append(k, v);
+  return usp;
+}
+
 export async function sendTelegram(text: string, settings: ProfileSettings): Promise<boolean> {
   if (!settings.telegramEnabled) return false;
   const token = (settings.telegramBotToken || '').trim();
@@ -14,12 +22,11 @@ export async function sendTelegram(text: string, settings: ProfileSettings): Pro
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: tgBody({
         chat_id: chatId,
         text,
         parse_mode: 'MarkdownV2',
-        disable_web_page_preview: true,
+        disable_web_page_preview: 'true',
       }),
     });
     return res.ok;
@@ -130,8 +137,7 @@ export async function testTelegram(settings: ProfileSettings, profileName: strin
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: tgBody({
         chat_id: chatId,
         text: `✅ Test dari AdJournal — akun *${escapeMd(profileName)}* berhasil terhubung\\!`,
         parse_mode: 'MarkdownV2',
@@ -140,5 +146,8 @@ export async function testTelegram(settings: ProfileSettings, profileName: strin
     if (res.ok) return { ok: true };
     const j = await res.json().catch(() => ({} as any));
     return { ok: false, error: j.description || `HTTP ${res.status}` };
-  } catch (e) { return { ok: false, error: (e as Error).message }; }
+  } catch (e) {
+    const msg = (e as Error).message || 'Network error';
+    return { ok: false, error: msg + ' — cek format token (123456:ABC...) & chat ID (angka, dari @userinfobot)' };
+  }
 }
