@@ -123,7 +123,12 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
       setGmAmount(gm?.amount ? String(gm.amount) : '');
     }
     const profiles = Object.keys(gistData.profiles);
-    setGmOrder(gm?.profileOrder?.length ? gm.profileOrder : profiles);
+    const savedOrder = gm?.profileOrder ?? [];
+    // Reconcile: keep saved order for profiles that still exist,
+    // append any new profiles not yet in the order, drop stale ones.
+    const filtered = savedOrder.filter(p => profiles.includes(p));
+    const missing = profiles.filter(p => !filtered.includes(p));
+    setGmOrder([...filtered, ...missing]);
   }
 
   function saveSettings() {
@@ -168,7 +173,9 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
   function calcCascade(totalIdr: number): Record<string, number> {
     const result: Record<string, number> = {};
     let remaining = totalIdr;
+    // Only iterate over profiles that actually exist, in the chosen order.
     for (const pName of gmOrder) {
+      if (!gistData.profiles[pName]) continue;
       result[pName] = Math.max(0, remaining);
       const pSpend = (gistData.profiles[pName]?.entries || []).reduce((s, e) => s + (e.spend || 0), 0);
       remaining = Math.max(0, remaining - pSpend);
