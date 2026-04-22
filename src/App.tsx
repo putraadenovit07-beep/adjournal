@@ -369,7 +369,7 @@ export default function App() {
           .map(([n, p]) => ({ name: n, spend: (p.entries || []).reduce((s, e) => s + (e.spend || 0), 0) }))
           .filter(o => o.spend > 0);
         if (others.length === 0) return `Saldo total ${fRp(gm.amount)}`;
-        const parts = others.map(o => fRp(o.spend).replace(/^Rp\s*/, '')).join(' − ');
+        const parts = others.map(o => fRp(o.spend)).join(' − ');
         return `${fRp(gm.amount)} − ${parts}`;
       })()} onGoTo={goTo} />}
       {page === 'campaigns' && <Campaigns campaigns={campaigns} entries={entries} onAdd={addCampaign} onDelete={deleteCampaign} onQuickCatat={handleQuickCatat} />}
