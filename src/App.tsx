@@ -57,7 +57,6 @@ export default function App() {
         setLoggedIn(true);
         setSyncStatus('ok');
         setTimeout(() => setSyncStatus('idle'), 2000);
-        // Auto-select last profile if it still exists
         const last = getLastProfile();
         if (last && result.gistData.profiles[last]) {
           setActiveProfile(last);
@@ -100,7 +99,6 @@ export default function App() {
     setActiveProfile(profileName);
     setLastProfile(profileName);
     loadProfileData(profileData);
-    // If this was a newly created profile, write it to Gist
     if (!gistData?.profiles[profileName]) {
       writeDb(updatedGist).catch(() => {});
     }
@@ -215,7 +213,6 @@ export default function App() {
 
     showToast('ok', editId ? 'Jurnal berhasil diperbarui' : 'Jurnal berhasil disimpan');
 
-    // Telegram alert
     if (settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId && activeProfile) {
       const cp = campaigns.find(c => String(c.id) === String(data.campaignId));
       const msg = buildEntryMessage({ profileName: activeProfile, campaign: cp, entry: data, isEdit: !!editId, allEntries: updated });
@@ -247,8 +244,24 @@ export default function App() {
     syncDb(campaigns, entries, g, gistData!, activeProfile!);
   }
 
+  // Save entire GistData (used by global modal feature)
+  function handleSaveGistData(updatedGist: GistData) {
+    setGistData(updatedGist);
+    // If global modal is active, sync the active profile's goals locally
+    if (updatedGist.globalModal?.enabled && activeProfile) {
+      const updatedProfile = updatedGist.profiles[activeProfile];
+      if (updatedProfile?.goals) {
+        setGoals(updatedProfile.goals);
+      }
+    }
+    setSyncStatus('syncing');
+    writeDb(updatedGist)
+      .then(() => { setSyncStatus('ok'); setTimeout(() => setSyncStatus('idle'), 2000); })
+      .catch(() => { setSyncStatus('err'); setTimeout(() => setSyncStatus('idle'), 3000); });
+    showToast('ok', 'Pengaturan modal tersimpan');
+  }
+
   function handleSavePayouts(pos: Payout[]) {
-    // Detect transitions for Telegram alert (avoid double alerts)
     const oldMap = new Map(payouts.map(p => [p.id, p]));
     const alerts: { payout: Payout; kind: 'created-sukses' | 'pending-to-sukses' }[] = [];
     for (const p of pos) {
@@ -345,7 +358,18 @@ export default function App() {
         <EntryForm campaigns={campaigns} editEntry={editEntry} prefillCampaignId={prefillCampaignId} onSave={handleSaveEntry} onCancel={handleCancelEdit} onGoToCampaigns={() => goTo('campaigns')} />
       )}
       {page === 'journal' && <Journal campaigns={campaigns} entries={entries} onEdit={handleEditEntry} onDelete={handleDeleteEntry} onQuickCatat={handleQuickCatat} onGoTo={goTo} />}
-      {page === 'modal' && <ModalAwalPage goals={goals} entries={entries} payouts={payouts} onSave={handleSaveGoals} onSavePayouts={handleSavePayouts} />}
+      {page === 'modal' && (
+        <ModalAwalPage
+          goals={goals}
+          entries={entries}
+          payouts={payouts}
+          onSave={handleSaveGoals}
+          onSavePayouts={handleSavePayouts}
+          gistData={gistData}
+          activeProfile={activeProfile}
+          onSaveGistData={handleSaveGistData}
+        />
+      )}
       {page === 'analytics' && <Analytics campaigns={campaigns} entries={entries} goals={goals} />}
 
       <nav className="fnav">
