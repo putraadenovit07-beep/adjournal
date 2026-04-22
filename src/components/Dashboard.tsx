@@ -243,20 +243,16 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
             </div>
             <div className="mosaic-hero-aside">
               <div className="hero-aside-row">
-                <span className="hero-aside-lbl">💰 Penghasilan</span>
+                <span className="hero-aside-lbl">Penghasilan</span>
                 <span className="hero-aside-val pos">{fRp(totalRevenue)}</span>
               </div>
               <div className="hero-aside-row">
-                <span className="hero-aside-lbl">💸 Spend</span>
+                <span className="hero-aside-lbl">Spend</span>
                 <span className="hero-aside-val neg">{fRp(totalSpend)}</span>
               </div>
               <div className="hero-aside-row">
-                <span className="hero-aside-lbl">📊 Margin</span>
+                <span className="hero-aside-lbl">Margin</span>
                 <span className="hero-aside-val">{totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0.0'}%</span>
-              </div>
-              <div className="hero-aside-row">
-                <span className="hero-aside-lbl">💵 Payout Cair</span>
-                <span className="hero-aside-val">{fRp(totPoSukses)}</span>
               </div>
             </div>
           </div>
@@ -290,7 +286,7 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
                   <div className="po-feature-inline">
                     <span className="po-feature-amt" style={{ color: isSukses ? 'var(--g)' : 'var(--a)' }}>{fRp(featured.amount)}</span>
                     <span className="po-feature-sep">|</span>
-                    <span className={`po-mini-pill ${isSukses ? 'sukses' : 'pending'}`}>{isSukses ? '✓ Sukses' : '⏳ Pending'}</span>
+                    <span className={`po-mini-pill ${isSukses ? 'sukses' : 'pending'}`}>{isSukses ? 'Sukses' : 'Pending'}</span>
                     <span className="po-feature-sep">|</span>
                     <span className="po-feature-date">{featured.date}</span>
                   </div>

@@ -358,8 +358,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
 .mosaic-hero{position:relative;padding:22px 24px;border-radius:18px;background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--brd);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
 .mosaic-hero.pos::before{content:'';position:absolute;top:-50%;right:-30%;width:300px;height:300px;background:radial-gradient(circle,rgba(0,217,139,0.12),transparent 70%);pointer-events:none}
 .mosaic-hero.neg::before{content:'';position:absolute;top:-50%;right:-30%;width:300px;height:300px;background:radial-gradient(circle,rgba(255,77,109,0.12),transparent 70%);pointer-events:none}
-.mosaic-hero-top{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative;z-index:1;margin-bottom:14px}
-.mosaic-hero-label{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase}
+.mosaic-hero-top{display:flex;justify-content:space-between;align-items:center;gap:12px;position:relative;z-index:1;margin-bottom:10px}
+.mosaic-hero-label{font-size:13px;font-weight:700;color:var(--t3);letter-spacing:0.06em;text-transform:uppercase;line-height:1.25}
 .mosaic-hero-roi{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:5px 11px;border-radius:100px;letter-spacing:-0.2px;white-space:nowrap}
 .mosaic-hero-roi.pos{background:rgba(0,217,139,0.15);color:var(--g);border:1px solid rgba(0,217,139,0.3)}
 .mosaic-hero-roi.neg{background:rgba(255,77,109,0.15);color:var(--r);border:1px solid rgba(255,77,109,0.3)}
@@ -891,10 +891,10 @@ select option{background-color:#1a1a26;color:#f4f4f8}
 /* Hero card 2-column layout */
 .mosaic-hero-grid{display:grid;grid-template-columns:1.55fr 1fr;gap:22px;align-items:center;position:relative;z-index:1;height:100%}
 .mosaic-hero-main{display:flex;flex-direction:column;justify-content:center;min-width:0}
-.mosaic-hero-aside{display:flex;flex-direction:column;gap:8px;padding-left:16px;border-left:1px solid rgba(255,255,255,0.18);min-width:0}
-.hero-aside-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px}
-.hero-aside-lbl{color:rgba(255,255,255,0.78);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hero-aside-val{font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;letter-spacing:-0.3px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mosaic-hero-aside{display:flex;flex-direction:column;gap:14px;padding-left:20px;border-left:1px solid rgba(255,255,255,0.22);min-width:0}
+.hero-aside-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px}
+.hero-aside-lbl{color:rgba(255,255,255,0.82);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.hero-aside-val{font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;letter-spacing:-0.3px;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hero-aside-val.pos{color:#a7f3d0}
 .hero-aside-val.neg{color:#fecaca}
 @media (max-width:760px){
