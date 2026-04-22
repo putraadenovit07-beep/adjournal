@@ -5,7 +5,7 @@ import { formatDate } from './lib/helpers';
 import { getToken, clearToken, getUsername, getLastProfile, setLastProfile } from './lib/auth';
 import { writeDb, loginWithToken, EMPTY_PROFILE, EMPTY_SETTINGS } from './lib/github-db';
 import type { GistData, ProfileData, ProfileSettings } from './lib/github-db';
-import { sendTelegram, buildEntryMessage } from './lib/telegram';
+import { sendTelegram, buildEntryMessage, buildPayoutMessage } from './lib/telegram';
 import Login from './components/Login';
 import ProfileSelect from './components/ProfileSelect';
 import Dashboard from './components/Dashboard';
@@ -248,8 +248,35 @@ export default function App() {
   }
 
   function handleSavePayouts(pos: Payout[]) {
+    // Detect transitions for Telegram alert (avoid double alerts)
+    const oldMap = new Map(payouts.map(p => [p.id, p]));
+    const alerts: { payout: Payout; kind: 'created-sukses' | 'pending-to-sukses' }[] = [];
+    for (const p of pos) {
+      const prev = oldMap.get(p.id);
+      if (!prev && p.status === 'sukses') {
+        alerts.push({ payout: p, kind: 'created-sukses' });
+      } else if (prev && prev.status === 'pending' && p.status === 'sukses') {
+        alerts.push({ payout: p, kind: 'pending-to-sukses' });
+      }
+    }
     setPayouts(pos);
     syncDb(campaigns, entries, goals, gistData!, activeProfile!, undefined, pos);
+    showToast('ok', 'Payout tersimpan');
+
+    if (alerts.length && settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId && activeProfile) {
+      const totalSukses = pos.filter(p => p.status === 'sukses').reduce((s, p) => s + (p.amount || 0), 0);
+      const totalPending = pos.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0);
+      const countSukses = pos.filter(p => p.status === 'sukses').length;
+      for (const a of alerts) {
+        const msg = buildPayoutMessage({ profileName: activeProfile, payout: a.payout, kind: a.kind, totalSukses, totalPending, countSukses });
+        sendTelegram(msg, settings)
+          .then(ok => {
+            if (ok) showToast('info', a.kind === 'pending-to-sukses' ? '📨 Alert "Payout Cair" terkirim' : '📨 Alert Payout terkirim');
+            else showToast('err', '❌ Telegram gagal kirim');
+          })
+          .catch(err => showToast('err', '❌ Telegram gagal: ' + (err?.message || 'cek koneksi')));
+      }
+    }
   }
 
   function handleCancelEdit() {

@@ -1,4 +1,4 @@
-import type { Campaign, Entry } from './storage';
+import type { Campaign, Entry, Payout } from './storage';
 import type { ProfileSettings } from './github-db';
 import { fRp, fN } from './helpers';
 
@@ -80,6 +80,46 @@ export function buildEntryMessage(opts: {
     );
   }
 
+  return lines.join('\n');
+}
+
+export function buildPayoutMessage(opts: {
+  profileName: string;
+  payout: Payout;
+  kind: 'created-sukses' | 'pending-to-sukses';
+  totalSukses: number;
+  totalPending: number;
+  countSukses: number;
+}): string {
+  const { profileName, payout, kind, totalSukses, totalPending, countSukses } = opts;
+  const title = kind === 'pending-to-sukses'
+    ? '✅ *Payout CAIR\\!*'
+    : '💵 *Payout Sukses Tercatat*';
+  const subtitle = kind === 'pending-to-sukses'
+    ? '_Status diubah dari Pending → Sukses_'
+    : '_Payout baru ditambahkan dengan status Sukses_';
+  const lines = [
+    title,
+    subtitle,
+    '',
+    `👤 Akun: *${escapeMd(profileName)}*`,
+    `📅 Tanggal PO: \`${escapeMd(payout.date)}\``,
+    `💰 Nominal: *${escapeMd(fRp(payout.amount))}*`,
+  ];
+  if (payout.bankName || payout.accountNo || payout.accountHolder) {
+    lines.push('', '🏦 *Rekening Tujuan*');
+    if (payout.bankName) lines.push(`• Bank: ${escapeMd(payout.bankName)}`);
+    if (payout.accountNo) lines.push(`• No: \`${escapeMd(payout.accountNo)}\``);
+    if (payout.accountHolder) lines.push(`• a\\.n\\.: ${escapeMd(payout.accountHolder)}`);
+  }
+  if (payout.note) lines.push('', `📝 _${escapeMd(payout.note)}_`);
+  lines.push(
+    '',
+    '━━━━━━━━━━━━━━',
+    '📊 *Akumulasi Payout*',
+    `✅ Total Cair: \`${escapeMd(fRp(totalSukses))}\` \\(${escapeMd(fN(countSukses))}x\\)`,
+    `⏳ Masih Pending: \`${escapeMd(fRp(totalPending))}\``,
+  );
   return lines.join('\n');
 }
 
