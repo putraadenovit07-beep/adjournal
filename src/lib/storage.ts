@@ -28,3 +28,14 @@ export interface Goals {
   milestones: Milestone[];
   locked: boolean;
 }
+
+export interface Payout {
+  id: number;
+  date: string;
+  amount: number;
+  status: 'pending' | 'sukses';
+  bankName: string;
+  accountNo: string;
+  accountHolder: string;
+  note?: string;
+}

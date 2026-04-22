@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import './index.css';
-import type { Campaign, Entry, Goals } from './lib/storage';
+import type { Campaign, Entry, Goals, Payout } from './lib/storage';
 import { formatDate } from './lib/helpers';
 import { getToken, clearToken, getUsername, getLastProfile, setLastProfile } from './lib/auth';
 import { writeDb, loginWithToken, EMPTY_PROFILE, EMPTY_SETTINGS } from './lib/github-db';
@@ -31,6 +31,7 @@ export default function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [goals, setGoals] = useState<Goals>(EMPTY_GOALS);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
   const [settings, setSettings] = useState<ProfileSettings>({ ...EMPTY_SETTINGS });
   const [editEntry, setEditEntry] = useState<Entry | null>(null);
   const [prefillCampaignId, setPrefillCampaignId] = useState<number | null>(null);
@@ -74,6 +75,7 @@ export default function App() {
     setCampaigns(profileData.campaigns || []);
     setEntries(profileData.entries || []);
     setGoals(profileData.goals || EMPTY_GOALS);
+    setPayouts(profileData.payouts || []);
     setSettings({ ...EMPTY_SETTINGS, ...(profileData.settings || {}) });
   }
 
@@ -131,17 +133,26 @@ export default function App() {
     setCampaigns([]);
     setEntries([]);
     setGoals(EMPTY_GOALS);
+    setPayouts([]);
   }
 
-  const syncDb = useCallback(async (cams: Campaign[], ents: Entry[], gls: Goals, currentGist: GistData, profile: string, sett?: ProfileSettings) => {
+  const syncDb = useCallback(async (cams: Campaign[], ents: Entry[], gls: Goals, currentGist: GistData, profile: string, sett?: ProfileSettings, pos?: Payout[]) => {
     setSyncStatus('syncing');
     try {
-      const prevSettings = currentGist.profiles[profile]?.settings;
+      const prev = currentGist.profiles[profile];
+      const prevSettings = prev?.settings;
+      const prevPayouts = prev?.payouts;
       const updated: GistData = {
         ...currentGist,
         profiles: {
           ...currentGist.profiles,
-          [profile]: { campaigns: cams, entries: ents, goals: gls, settings: sett ?? prevSettings ?? { ...EMPTY_SETTINGS } }
+          [profile]: {
+            campaigns: cams,
+            entries: ents,
+            goals: gls,
+            settings: sett ?? prevSettings ?? { ...EMPTY_SETTINGS },
+            payouts: pos ?? prevPayouts ?? [],
+          }
         },
         version: Date.now(),
       };
@@ -236,6 +247,11 @@ export default function App() {
     syncDb(campaigns, entries, g, gistData!, activeProfile!);
   }
 
+  function handleSavePayouts(pos: Payout[]) {
+    setPayouts(pos);
+    syncDb(campaigns, entries, goals, gistData!, activeProfile!, undefined, pos);
+  }
+
   function handleCancelEdit() {
     setEditEntry(null);
     setPrefillCampaignId(null);
@@ -296,13 +312,13 @@ export default function App() {
         </div>
       </div>
 
-      {page === 'dashboard' && <Dashboard campaigns={campaigns} entries={entries} goals={goals} settings={settings} onGoTo={goTo} />}
+      {page === 'dashboard' && <Dashboard campaigns={campaigns} entries={entries} goals={goals} payouts={payouts} settings={settings} onGoTo={goTo} />}
       {page === 'campaigns' && <Campaigns campaigns={campaigns} entries={entries} onAdd={addCampaign} onDelete={deleteCampaign} onQuickCatat={handleQuickCatat} />}
       {page === 'entry' && (
         <EntryForm campaigns={campaigns} editEntry={editEntry} prefillCampaignId={prefillCampaignId} onSave={handleSaveEntry} onCancel={handleCancelEdit} onGoToCampaigns={() => goTo('campaigns')} />
       )}
       {page === 'journal' && <Journal campaigns={campaigns} entries={entries} onEdit={handleEditEntry} onDelete={handleDeleteEntry} onQuickCatat={handleQuickCatat} onGoTo={goTo} />}
-      {page === 'modal' && <ModalAwalPage goals={goals} entries={entries} onSave={handleSaveGoals} />}
+      {page === 'modal' && <ModalAwalPage goals={goals} entries={entries} payouts={payouts} onSave={handleSaveGoals} onSavePayouts={handleSavePayouts} />}
       {page === 'analytics' && <Analytics campaigns={campaigns} entries={entries} goals={goals} />}
 
       <nav className="fnav">

@@ -1,5 +1,5 @@
 import { getToken, getGistId, setGistId, setUsername } from './auth';
-import type { Campaign, Entry, Goals } from './storage';
+import type { Campaign, Entry, Goals, Payout } from './storage';
 
 const GIST_FILENAME = 'adjournal-data.json';
 const GIST_DESC = 'AdJournal Database';
@@ -20,6 +20,7 @@ export interface ProfileData {
   entries: Entry[];
   goals: Goals;
   settings?: ProfileSettings;
+  payouts?: Payout[];
 }
 
 export interface GistData {
@@ -43,6 +44,7 @@ export const EMPTY_PROFILE: ProfileData = {
   entries: [],
   goals: EMPTY_GOALS,
   settings: { ...EMPTY_SETTINGS },
+  payouts: [],
 };
 
 const EMPTY_GIST: GistData = { profiles: {}, version: 0 };

@@ -1,4 +1,4 @@
-import { Campaign, Entry, Goals } from '../lib/storage';
+import { Campaign, Entry, Goals, Payout } from '../lib/storage';
 import { fRp, fN, todayStr } from '../lib/helpers';
 import type { ProfileSettings } from '../lib/github-db';
 
@@ -6,6 +6,7 @@ interface Props {
   campaigns: Campaign[];
   entries: Entry[];
   goals: Goals;
+  payouts?: Payout[];
   settings?: ProfileSettings;
   onGoTo: (page: string) => void;
 }
@@ -78,9 +79,14 @@ function DeltaCard({ label, value, prevValue, delta: d, isMoney, invertColor, co
   );
 }
 
-export default function Dashboard({ campaigns, entries, goals, settings, onGoTo }: Props) {
+export default function Dashboard({ campaigns, entries, goals, payouts, settings, onGoTo }: Props) {
   const hideModalAwal = !!settings?.hideModalAwal;
-  const hideRecentCampaigns = !!settings?.hideRecentCampaigns;
+  const poList = payouts || [];
+  const totPoPending = poList.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0);
+  const totPoSukses = poList.filter(p => p.status === 'sukses').reduce((s, p) => s + (p.amount || 0), 0);
+  const cntPoPending = poList.filter(p => p.status === 'pending').length;
+  const cntPoSukses = poList.filter(p => p.status === 'sukses').length;
+  const nextPending = [...poList].filter(p => p.status === 'pending').sort((a, b) => (a.date || '').localeCompare(b.date || ''))[0];
   const totalSpend = entries.reduce((s, e) => s + (e.spend || 0), 0);
   const totalRevenue = entries.reduce((s, e) => s + (e.revenue || 0), 0);
   const netProfit = totalRevenue - totalSpend;
@@ -97,14 +103,6 @@ export default function Dashboard({ campaigns, entries, goals, settings, onGoTo 
   const sudahBalik = modalNum > 0 && netProfit >= modalNum;
 
   const netColor = netProfit > 0 ? 'var(--g)' : netProfit < 0 ? 'var(--r)' : 'var(--t1)';
-
-  const recentCampaigns = campaigns.slice(0, 5).map(cp => {
-    const cpEntries = entries.filter(e => String(e.campaignId) === String(cp.id));
-    const rev = cpEntries.reduce((s, e) => s + (e.revenue || 0), 0);
-    const spend = cpEntries.reduce((s, e) => s + (e.spend || 0), 0);
-    const profit = rev - spend;
-    return { ...cp, profit, entries: cpEntries.length };
-  });
 
   return (
     <div className="page">
@@ -258,36 +256,43 @@ export default function Dashboard({ campaigns, entries, goals, settings, onGoTo 
             </div>
             <span className="mosaic-mini-icon" style={{ color: 'var(--r)' }}>↓</span>
           </div>
+          <div className="mosaic-mini po-mini" onClick={() => onGoTo('modal')} title="Kelola payout">
+            <div className="mosaic-mini-bar" style={{ background: 'var(--tc)' }} />
+            <div className="mosaic-mini-body po-mini-body">
+              <div className="po-mini-head">
+                <span className="mosaic-mini-label">Payout Adsense</span>
+                <span className="po-mini-pills">
+                  {cntPoPending > 0 && <span className="po-mini-pill pending">{cntPoPending} pending</span>}
+                  {cntPoSukses > 0 && <span className="po-mini-pill sukses">{cntPoSukses} sukses</span>}
+                </span>
+              </div>
+              {poList.length === 0 ? (
+                <span className="po-mini-empty">+ Tambah payout</span>
+              ) : (
+                <>
+                  <div className="po-mini-rows">
+                    <div className="po-mini-row">
+                      <span className="po-mini-row-lbl">⏳ Pending</span>
+                      <span className="po-mini-row-val" style={{ color: 'var(--a)' }}>{fRp(totPoPending)}</span>
+                    </div>
+                    <div className="po-mini-row">
+                      <span className="po-mini-row-lbl">✓ Sukses</span>
+                      <span className="po-mini-row-val" style={{ color: 'var(--g)' }}>{fRp(totPoSukses)}</span>
+                    </div>
+                  </div>
+                  {nextPending && (
+                    <div className="po-mini-next">
+                      Berikutnya: <strong>{nextPending.date}</strong> · {fRp(nextPending.amount)}
+                      {nextPending.bankName && ` → ${nextPending.bankName}`}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <span className="mosaic-mini-icon" style={{ color: 'var(--tc)' }}>→</span>
+          </div>
         </div>
       </div>
-
-      {!hideRecentCampaigns && (
-        <div className="card">
-          <div className="card-h">
-            <span className="card-h-title">Campaign Terbaru</span>
-          </div>
-          <div className="card-b">
-            {recentCampaigns.length === 0 ? (
-              <div className="empty">Belum ada kampanye.</div>
-            ) : (
-              recentCampaigns.map(cp => (
-                <div key={cp.id} className="camp-item">
-                  <div>
-                    <div className="camp-name">{cp.name}</div>
-                    <div className="camp-date">{cp.platform}{cp.startdate ? ` · ${cp.startdate}` : ''}</div>
-                  </div>
-                  <div className="camp-right">
-                    <div className="camp-val" style={{ color: cp.profit >= 0 ? 'var(--g)' : 'var(--r)' }}>
-                      {cp.profit >= 0 ? '+' : ''}{fRp(cp.profit)}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--t3)' }}>{cp.entries} entri</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
