@@ -344,6 +344,11 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                         Sisa Modal: {ms.tercapai ? '✓ BEP Tercapai' : fRp(ms.sisa)}
                       </div>
                     )}
+                    {ms && (
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--r)', marginTop: 2 }}>
+                        Spend Akun Ini: {fRp(ms.totalSpend)}
+                      </div>
+                    )}
                   </div>
                   <svg className="profile-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
