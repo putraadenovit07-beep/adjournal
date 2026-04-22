@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import type { GistData, ProfileData, ProfileSettings, ThemeName } from '../lib/github-db';
+import { useState, useEffect } from 'react';
+import type { GistData, ProfileData, ProfileSettings, ThemeName, GlobalModalConfig } from '../lib/github-db';
 import { EMPTY_PROFILE, EMPTY_SETTINGS } from '../lib/github-db';
 import { testTelegram, fetchChatIdFromBot } from '../lib/telegram';
+import { fRp } from '../lib/helpers';
+import { fetchUsdToIdr, getCachedRate } from '../lib/currency';
+import type { Goals } from '../lib/storage';
 
 interface Props {
   username: string;
@@ -10,6 +13,7 @@ interface Props {
   onLogout: () => void;
   onDeleteProfile: (profileName: string, updatedGist: GistData) => void;
   onUpdateSettings: (profileName: string, newSettings: ProfileSettings) => void;
+  onSaveGistData: (g: GistData) => void;
 }
 
 const PROFILE_COLORS = [
@@ -27,7 +31,20 @@ function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function ProfileSelect({ username, gistData, onSelect, onLogout, onDeleteProfile, onUpdateSettings }: Props) {
+function profileSisaModal(gistData: GistData, name: string) {
+  const p = gistData.profiles[name];
+  if (!p) return null;
+  const modal = p.goals?.modal || 0;
+  if (!modal) return null;
+  const totalSpend = (p.entries || []).reduce((s, e) => s + (e.spend || 0), 0);
+  const totalRevenue = (p.entries || []).reduce((s, e) => s + (e.revenue || 0), 0);
+  const netProfit = totalRevenue - totalSpend;
+  const sisa = Math.max(0, modal - netProfit);
+  const tercapai = netProfit >= modal;
+  return { modal, sisa, tercapai, netProfit, totalSpend };
+}
+
+export default function ProfileSelect({ username, gistData, onSelect, onLogout, onDeleteProfile, onUpdateSettings, onSaveGistData }: Props) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
@@ -37,6 +54,23 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
   const [tgTesting, setTgTesting] = useState(false);
   const [tgResult, setTgResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [tgFetching, setTgFetching] = useState(false);
+
+  // Modal settings state
+  const [mTab, setMTab] = useState<'per-akun' | 'semua-akun'>('per-akun');
+  const [mAmount, setMAmount] = useState('');
+  const [mCurrency, setMCurrency] = useState<'idr' | 'usd'>('idr');
+  const [mStart, setMStart] = useState('');
+  const [mSaved, setMSaved] = useState(false);
+  const [gmEnabled, setGmEnabled] = useState(false);
+  const [gmAmount, setGmAmount] = useState('');
+  const [gmCurrency, setGmCurrency] = useState<'idr' | 'usd'>('idr');
+  const [gmOrder, setGmOrder] = useState<string[]>([]);
+  const [gmSaved, setGmSaved] = useState(false);
+  const [usdRate, setUsdRate] = useState(getCachedRate());
+
+  useEffect(() => {
+    fetchUsdToIdr().then(r => setUsdRate(r));
+  }, []);
 
   async function handleTestTelegram() {
     if (!settingsFor) return;
@@ -51,7 +85,7 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
     const r = await fetchChatIdFromBot(draftSettings.telegramBotToken || '');
     if (r.ok && r.chatId) {
       setDraftSettings(s => ({ ...s, telegramChatId: r.chatId! }));
-      setTgResult({ ok: true, msg: `Chat ID terisi otomatis: ${r.chatId}${r.chatTitle ? ' (' + r.chatTitle + ')' : ''}` });
+      setTgResult({ ok: true, msg: `Chat ID terisi: ${r.chatId}${r.chatTitle ? ' (' + r.chatTitle + ')' : ''}` });
     } else {
       setTgResult({ ok: false, msg: r.error || 'Gagal ambil chat ID' });
     }
@@ -63,12 +97,120 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
     setDraftSettings({ ...EMPTY_SETTINGS, ...current });
     setTgResult(null);
     setSettingsFor(name);
+    setMTab('per-akun');
+    setMSaved(false);
+    setGmSaved(false);
+
+    // Init per-akun modal
+    const goals = gistData.profiles[name]?.goals;
+    if (goals?.modalCurrency === 'usd' && goals.modalUsdAmount) {
+      setMCurrency('usd');
+      setMAmount(String(goals.modalUsdAmount));
+    } else {
+      setMCurrency('idr');
+      setMAmount(goals?.modal ? String(goals.modal) : '');
+    }
+    setMStart(goals?.start || '');
+
+    // Init global modal
+    const gm = gistData.globalModal;
+    setGmEnabled(gm?.enabled ?? false);
+    if (gm?.currency === 'usd' && gm.usdAmount) {
+      setGmCurrency('usd');
+      setGmAmount(String(gm.usdAmount));
+    } else {
+      setGmCurrency('idr');
+      setGmAmount(gm?.amount ? String(gm.amount) : '');
+    }
+    const profiles = Object.keys(gistData.profiles);
+    setGmOrder(gm?.profileOrder?.length ? gm.profileOrder : profiles);
   }
 
   function saveSettings() {
     if (!settingsFor) return;
     onUpdateSettings(settingsFor, draftSettings);
     setSettingsFor(null);
+  }
+
+  function savePerAkunModal() {
+    if (!settingsFor) return;
+    const v = parseFloat(mAmount) || 0;
+    const idrVal = mCurrency === 'usd' ? Math.round(v * usdRate) : v;
+    const existing = gistData.profiles[settingsFor];
+    const updatedGoals: Goals = {
+      ...(existing?.goals || { modal: 0, start: '', milestones: [], locked: false }),
+      modal: idrVal,
+      start: mStart,
+      modalCurrency: mCurrency,
+      modalUsdAmount: mCurrency === 'usd' ? v : undefined,
+    };
+    const updatedGist: GistData = {
+      ...gistData,
+      profiles: {
+        ...gistData.profiles,
+        [settingsFor]: { ...existing, goals: updatedGoals },
+      },
+      version: Date.now(),
+    };
+    onSaveGistData(updatedGist);
+    setMSaved(true);
+    setTimeout(() => setMSaved(false), 2200);
+  }
+
+  function moveGmOrder(idx: number, dir: -1 | 1) {
+    const arr = [...gmOrder];
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= arr.length) return;
+    [arr[idx], arr[swapIdx]] = [arr[swapIdx], arr[idx]];
+    setGmOrder(arr);
+  }
+
+  function calcCascade(totalIdr: number): Record<string, number> {
+    const result: Record<string, number> = {};
+    let remaining = totalIdr;
+    for (const pName of gmOrder) {
+      result[pName] = Math.max(0, remaining);
+      const pSpend = (gistData.profiles[pName]?.entries || []).reduce((s, e) => s + (e.spend || 0), 0);
+      remaining = Math.max(0, remaining - pSpend);
+    }
+    return result;
+  }
+
+  function saveGlobalModal() {
+    const v = parseFloat(gmAmount) || 0;
+    if (!v) return;
+    const idrVal = gmCurrency === 'usd' ? Math.round(v * usdRate) : v;
+    const cascade = calcCascade(idrVal);
+
+    const config: GlobalModalConfig = {
+      enabled: gmEnabled,
+      amount: idrVal,
+      currency: gmCurrency,
+      usdAmount: gmCurrency === 'usd' ? v : undefined,
+      profileOrder: [...gmOrder],
+    };
+
+    const updatedProfiles = { ...gistData.profiles };
+    if (gmEnabled) {
+      for (const pName of gmOrder) {
+        if (updatedProfiles[pName]) {
+          updatedProfiles[pName] = {
+            ...updatedProfiles[pName],
+            goals: { ...updatedProfiles[pName].goals, modal: cascade[pName] },
+          };
+        }
+      }
+    }
+
+    const updatedGist: GistData = {
+      ...gistData,
+      profiles: updatedProfiles,
+      globalModal: config,
+      version: Date.now(),
+    };
+    onSaveGistData(updatedGist);
+    setGmSaved(true);
+    setTimeout(() => setGmSaved(false), 2500);
   }
 
   const profiles = Object.keys(gistData.profiles);
@@ -90,7 +232,6 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
     const name = newName.trim();
     if (!name) { setError('Nama akun tidak boleh kosong'); return; }
     if (gistData.profiles[name]) { setError('Nama akun sudah ada'); return; }
-
     const updated: GistData = {
       ...gistData,
       profiles: {
@@ -100,6 +241,10 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
     };
     onSelect(name, updated.profiles[name], updated);
   }
+
+  // Cascade preview for keseluruhan tab
+  const gmIdrVal = gmCurrency === 'usd' ? Math.round((parseFloat(gmAmount) || 0) * usdRate) : (parseFloat(gmAmount) || 0);
+  const cascade = gmIdrVal > 0 ? calcCascade(gmIdrVal) : null;
 
   return (
     <div className="profile-screen">
@@ -125,6 +270,7 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
             const color = getColor(name);
             const entryCount = (p?.entries || []).length;
             const cpCount = (p?.campaigns || []).length;
+            const ms = profileSisaModal(gistData, name);
             return (
               <div key={name} className="profile-card-wrap">
                 <button className="profile-card" onClick={() => handleSelect(name)}>
@@ -135,24 +281,19 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                     <div className="profile-card-name">{name}</div>
                     <div className="profile-card-meta">
                       {cpCount} campaign · {entryCount} entri
+                      {ms && (
+                        <span style={{ color: ms.tercapai ? 'var(--g)' : 'var(--a)', fontWeight: 600, marginLeft: 4 }}>
+                          · Sisa: {ms.tercapai ? '✓ BEP' : fRp(ms.sisa)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <svg className="profile-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
-                <button
-                  className="profile-card-set"
-                  onClick={(e) => { e.stopPropagation(); openSettings(name); }}
-                  title="Pengaturan akun"
-                  aria-label="Pengaturan akun"
-                >
+                <button className="profile-card-set" onClick={e => { e.stopPropagation(); openSettings(name); }} title="Pengaturan akun" aria-label="Pengaturan akun">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 </button>
-                <button
-                  className="profile-card-del"
-                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(name); }}
-                  title="Hapus akun"
-                  aria-label="Hapus akun"
-                >
+                <button className="profile-card-del" onClick={e => { e.stopPropagation(); setConfirmDelete(name); }} title="Hapus akun" aria-label="Hapus akun">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                 </button>
               </div>
@@ -164,15 +305,9 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
           <div className="profile-create-form">
             <div className="fg">
               <label>Nama Akun Baru</label>
-              <input
-                type="text"
-                placeholder="Contoh: Akun Facebook Ads, Client A, dsb"
-                value={newName}
+              <input type="text" placeholder="Contoh: Adsense 1, Client A, dsb" value={newName}
                 onChange={e => { setNewName(e.target.value); setError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                autoFocus
-                maxLength={40}
-              />
+                onKeyDown={e => e.key === 'Enter' && handleCreate()} autoFocus maxLength={40} />
             </div>
             {error && <div className="login-error" style={{ marginTop: 6 }}>{error}</div>}
             <div className="btn-row" style={{ marginTop: 12 }}>
@@ -192,23 +327,18 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
 
         {confirmDelete && (
           <div className="profile-confirm-backdrop" onClick={() => setConfirmDelete(null)}>
-            <div className="profile-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="profile-confirm-modal" onClick={e => e.stopPropagation()}>
               <div className="profile-confirm-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <div className="profile-confirm-title">Hapus akun ini?</div>
               <div className="profile-confirm-msg">
-                Akun <strong>{confirmDelete}</strong> akan dihapus permanen beserta semua campaign, entri, dan data modal-nya.
-                <br/><br/>
-                <span style={{ color: 'var(--r)', fontWeight: 600 }}>Tindakan ini tidak bisa dibatalkan.</span>
+                Akun <strong>{confirmDelete}</strong> akan dihapus permanen beserta semua data-nya.
+                <br/><span style={{ color: 'var(--r)', fontWeight: 600 }}>Tindakan ini tidak bisa dibatalkan.</span>
               </div>
               <div className="profile-confirm-acts">
-                <button className="profile-confirm-no" onClick={() => setConfirmDelete(null)}>
-                  Tidak, Batal
-                </button>
-                <button className="profile-confirm-yes" onClick={() => handleConfirmDelete(confirmDelete)}>
-                  Ya, Hapus
-                </button>
+                <button className="profile-confirm-no" onClick={() => setConfirmDelete(null)}>Tidak, Batal</button>
+                <button className="profile-confirm-yes" onClick={() => handleConfirmDelete(confirmDelete)}>Ya, Hapus</button>
               </div>
             </div>
           </div>
@@ -216,17 +346,178 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
 
         {settingsFor && (
           <div className="profile-confirm-backdrop" onClick={() => setSettingsFor(null)}>
-            <div className="profile-confirm-modal profile-settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="profile-confirm-modal profile-settings-modal" onClick={e => e.stopPropagation()}>
               <div className="profile-settings-head">
                 <div className="profile-settings-icon">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 </div>
                 <div>
-                  <div className="profile-confirm-title" style={{ marginTop: 0 }}>Pengaturan Tampilan</div>
+                  <div className="profile-confirm-title" style={{ marginTop: 0 }}>Pengaturan Akun</div>
                   <div className="profile-settings-sub">Akun: <strong>{settingsFor}</strong></div>
                 </div>
               </div>
+
               <div className="profile-settings-scroll">
+
+                {/* ===== PENGATURAN MODAL ===== */}
+                <div className="profile-settings-section">
+                  <div className="profile-settings-section-title">Pengaturan Modal</div>
+                  <div className="modal-tab-bar" style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                    {(['per-akun', 'semua-akun'] as const).map(t => (
+                      <button key={t} type="button"
+                        style={{
+                          flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                          background: mTab === t ? 'var(--p)' : 'rgba(255,255,255,0.05)',
+                          color: mTab === t ? '#fff' : 'var(--t2)',
+                          transition: 'all .15s',
+                        }}
+                        onClick={() => setMTab(t)}
+                      >
+                        {t === 'per-akun' ? 'Per Akun Ini' : 'Keseluruhan Akun'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {mTab === 'per-akun' && (
+                    <div>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                        {(['idr', 'usd'] as const).map(c => (
+                          <button key={c} type="button"
+                            style={{
+                              padding: '5px 14px', borderRadius: 7, border: '1px solid var(--brd)', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                              background: mCurrency === c ? 'var(--p)' : 'transparent',
+                              color: mCurrency === c ? '#fff' : 'var(--t2)',
+                            }}
+                            onClick={() => {
+                              if (c === mCurrency) return;
+                              const v = parseFloat(mAmount) || 0;
+                              if (mCurrency === 'idr' && c === 'usd' && usdRate > 0) {
+                                setMAmount(v > 0 ? (v / usdRate).toFixed(2) : '');
+                              } else if (mCurrency === 'usd' && c === 'idr') {
+                                setMAmount(v > 0 ? String(Math.round(v * usdRate)) : '');
+                              }
+                              setMCurrency(c);
+                            }}
+                          >{c.toUpperCase()}</button>
+                        ))}
+                      </div>
+                      <div className="fg" style={{ marginBottom: 8 }}>
+                        <label>Modal Awal ({mCurrency.toUpperCase()})</label>
+                        <input type="number" placeholder={mCurrency === 'usd' ? 'Contoh: 100.00' : 'Contoh: 900000'}
+                          value={mAmount} onChange={e => setMAmount(e.target.value)} inputMode="decimal" />
+                        {mCurrency === 'usd' && usdRate > 0 && parseFloat(mAmount) > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>
+                            ≈ {fRp(Math.round(parseFloat(mAmount) * usdRate))} (rate: Rp {usdRate.toLocaleString('id-ID')}/USD)
+                          </div>
+                        )}
+                      </div>
+                      <div className="fg" style={{ marginBottom: 10 }}>
+                        <label>Tanggal Mulai</label>
+                        <input type="date" value={mStart} onChange={e => setMStart(e.target.value)} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <button type="button" className="btn-primary" style={{ flex: 1, padding: '8px 0', fontSize: 13 }} onClick={savePerAkunModal}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                          Simpan Modal
+                        </button>
+                        {mSaved && <span style={{ fontSize: 12, color: 'var(--g)', fontWeight: 700 }}>✓ Tersimpan</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {mTab === 'semua-akun' && (
+                    <div>
+                      <label className="profile-settings-row" style={{ marginBottom: 10 }}>
+                        <div className="profile-settings-row-info">
+                          <div className="profile-settings-row-name">Aktifkan Mode Keseluruhan</div>
+                          <div className="profile-settings-row-desc">Modal dibagi otomatis ke semua akun secara cascade</div>
+                        </div>
+                        <span className={`profile-toggle ${gmEnabled ? 'on' : ''}`} onClick={() => setGmEnabled(v => !v)}>
+                          <span className="profile-toggle-knob" />
+                        </span>
+                      </label>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                        {(['idr', 'usd'] as const).map(c => (
+                          <button key={c} type="button"
+                            style={{
+                              padding: '5px 14px', borderRadius: 7, border: '1px solid var(--brd)', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                              background: gmCurrency === c ? 'var(--p)' : 'transparent',
+                              color: gmCurrency === c ? '#fff' : 'var(--t2)',
+                            }}
+                            onClick={() => {
+                              if (c === gmCurrency) return;
+                              const v = parseFloat(gmAmount) || 0;
+                              if (gmCurrency === 'idr' && c === 'usd' && usdRate > 0) {
+                                setGmAmount(v > 0 ? (v / usdRate).toFixed(2) : '');
+                              } else if (gmCurrency === 'usd' && c === 'idr') {
+                                setGmAmount(v > 0 ? String(Math.round(v * usdRate)) : '');
+                              }
+                              setGmCurrency(c);
+                            }}
+                          >{c.toUpperCase()}</button>
+                        ))}
+                      </div>
+                      <div className="fg" style={{ marginBottom: 12 }}>
+                        <label>Total Modal ({gmCurrency.toUpperCase()})</label>
+                        <input type="number" placeholder={gmCurrency === 'usd' ? 'Contoh: 100.00' : 'Contoh: 2700000'}
+                          value={gmAmount} onChange={e => setGmAmount(e.target.value)} inputMode="decimal" />
+                        {gmCurrency === 'usd' && usdRate > 0 && parseFloat(gmAmount) > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>
+                            ≈ {fRp(Math.round(parseFloat(gmAmount) * usdRate))}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                          Urutan Cascade (▲▼ untuk ubah)
+                        </div>
+                        {gmOrder.map((pName, idx) => {
+                          const pData = gistData.profiles[pName];
+                          const pSpend = (pData?.entries || []).reduce((s, e) => s + (e.spend || 0), 0);
+                          const allocIdr = cascade ? cascade[pName] : null;
+                          return (
+                            <div key={pName} style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              padding: '8px 10px', borderRadius: 8,
+                              background: pName === settingsFor ? 'rgba(139,124,248,0.12)' : 'rgba(255,255,255,0.03)',
+                              border: `1px solid ${pName === settingsFor ? 'rgba(139,124,248,0.3)' : 'var(--brd)'}`,
+                              marginBottom: 4, fontSize: 12,
+                            }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <button type="button" onClick={() => moveGmOrder(idx, -1)} disabled={idx === 0}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', padding: '0 2px', lineHeight: 1, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
+                                <button type="button" onClick={() => moveGmOrder(idx, 1)} disabled={idx === gmOrder.length - 1}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', padding: '0 2px', lineHeight: 1, opacity: idx === gmOrder.length - 1 ? 0.3 : 1 }}>▼</button>
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, color: 'var(--t1)' }}>
+                                  #{idx + 1} {pName}
+                                  {pName === settingsFor && <span style={{ color: 'var(--p)', marginLeft: 4, fontSize: 10 }}>● akun ini</span>}
+                                </div>
+                                <div style={{ color: 'var(--t3)', fontSize: 11 }}>
+                                  Terpakai: {fRp(pSpend)}
+                                  {allocIdr !== null && gmEnabled && (
+                                    <span style={{ color: 'var(--p)', marginLeft: 8 }}>→ Modal: {fRp(allocIdr)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <button type="button" className="btn-primary" style={{ flex: 1, padding: '8px 0', fontSize: 13 }}
+                          onClick={saveGlobalModal} disabled={!gmIdrVal}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                          {gmEnabled ? 'Terapkan ke Semua Akun' : 'Simpan Konfigurasi'}
+                        </button>
+                        {gmSaved && <span style={{ fontSize: 12, color: 'var(--g)', fontWeight: 700 }}>✓ Diterapkan</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ===== SEMBUNYIKAN ===== */}
                 <div className="profile-settings-section">
                   <div className="profile-settings-section-title">Sembunyikan di Dashboard</div>
                   <label className="profile-settings-row">
@@ -251,6 +542,7 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                   </label>
                 </div>
 
+                {/* ===== TEMA ===== */}
                 <div className="profile-settings-section">
                   <div className="profile-settings-section-title">Tema Tampilan</div>
                   <div className="theme-picker">
@@ -258,12 +550,9 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                       { id: 'default', name: 'Default', sub: 'Gelap & ungu', c1: '#0f0f17', c2: '#8b7cf8', c3: '#f4f4f8' },
                       { id: 'adsense', name: 'Adsense', sub: 'Putih & biru Google', c1: '#ffffff', c2: '#1a73e8', c3: '#202124' },
                     ] as { id: ThemeName; name: string; sub: string; c1: string; c2: string; c3: string }[]).map(t => (
-                      <button
-                        key={t.id}
-                        type="button"
+                      <button key={t.id} type="button"
                         className={`theme-card ${(draftSettings.theme || 'default') === t.id ? 'active' : ''}`}
-                        onClick={() => setDraftSettings(s => ({ ...s, theme: t.id }))}
-                      >
+                        onClick={() => setDraftSettings(s => ({ ...s, theme: t.id }))}>
                         <div className="theme-swatch" style={{ background: t.c1, border: `1px solid ${t.id === 'adsense' ? '#dadce0' : 'rgba(255,255,255,0.08)'}` }}>
                           <span className="theme-dot" style={{ background: t.c2 }} />
                           <span className="theme-bar" style={{ background: t.c3, opacity: 0.85 }} />
@@ -274,15 +563,14 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                           <div className="theme-sub">{t.sub}</div>
                         </div>
                         {(draftSettings.theme || 'default') === t.id && (
-                          <span className="theme-check">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                          </span>
+                          <span className="theme-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg></span>
                         )}
                       </button>
                     ))}
                   </div>
                 </div>
 
+                {/* ===== TELEGRAM ===== */}
                 <div className="profile-settings-section">
                   <div className="profile-settings-section-title">Notifikasi Telegram</div>
                   <label className="profile-settings-row">
@@ -299,29 +587,23 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                     <div className="tg-fields">
                       <div className="fg">
                         <label>Bot Token</label>
-                        <input
-                          type="password"
-                          placeholder="123456789:ABC..."
+                        <input type="password" placeholder="123456789:ABC..."
                           value={draftSettings.telegramBotToken || ''}
-                          onChange={e => { setDraftSettings(s => ({ ...s, telegramBotToken: e.target.value })); setTgResult(null); }}
-                        />
+                          onChange={e => { setDraftSettings(s => ({ ...s, telegramBotToken: e.target.value })); setTgResult(null); }} />
                       </div>
                       <div className="fg">
-                        <label>Chat ID <span className="tg-label-hint">(angka, bukan token)</span></label>
+                        <label>Chat ID <span className="tg-label-hint">(angka)</span></label>
                         <div className="tg-chatid-row">
-                          <input
-                            type="text"
-                            placeholder="contoh: 123456789 atau -1001234567890"
+                          <input type="text" placeholder="contoh: 123456789"
                             value={draftSettings.telegramChatId || ''}
-                            onChange={e => { setDraftSettings(s => ({ ...s, telegramChatId: e.target.value })); setTgResult(null); }}
-                          />
-                          <button type="button" className="tg-fetch-btn" onClick={handleFetchChatId} disabled={tgFetching} title="Auto-isi dari bot">
+                            onChange={e => { setDraftSettings(s => ({ ...s, telegramChatId: e.target.value })); setTgResult(null); }} />
+                          <button type="button" className="tg-fetch-btn" onClick={handleFetchChatId} disabled={tgFetching}>
                             {tgFetching ? '...' : '🔍 Auto'}
                           </button>
                         </div>
                       </div>
                       <div className="tg-help">
-                        <strong>Cara pakai auto-detect:</strong> 1) Buat bot via <strong>@BotFather</strong> & paste token di atas. 2) Buka chat bot di Telegram, kirim <code>/start</code>. 3) Klik tombol <strong>🔍 Auto</strong> — Chat ID terisi otomatis.
+                        <strong>Cara:</strong> Buat bot via <strong>@BotFather</strong>, kirim <code>/start</code> ke bot, lalu klik <strong>🔍 Auto</strong>.
                       </div>
                       <button type="button" className="tg-test-btn" onClick={handleTestTelegram} disabled={tgTesting}>
                         {tgTesting ? 'Mengirim...' : 'Tes Kirim Pesan'}
@@ -333,9 +615,10 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                   )}
                 </div>
               </div>
+
               <div className="profile-confirm-acts">
-                <button className="profile-confirm-no" onClick={() => setSettingsFor(null)}>Batal</button>
-                <button className="profile-confirm-yes profile-settings-save" onClick={saveSettings}>Simpan</button>
+                <button className="profile-confirm-no" onClick={() => setSettingsFor(null)}>Tutup</button>
+                <button className="profile-confirm-yes profile-settings-save" onClick={saveSettings}>Simpan Tampilan</button>
               </div>
             </div>
           </div>
