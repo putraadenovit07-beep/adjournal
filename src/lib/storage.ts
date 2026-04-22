@@ -27,6 +27,8 @@ export interface Goals {
   start: string;
   milestones: Milestone[];
   locked: boolean;
+  modalCurrency?: 'idr' | 'usd';
+  modalUsdAmount?: number;
 }
 
 export interface Payout {
