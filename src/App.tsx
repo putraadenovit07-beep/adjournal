@@ -3,7 +3,7 @@ import './index.css';
 import type { Campaign, Entry, Goals, Payout } from './lib/storage';
 import { formatDate } from './lib/helpers';
 import { getToken, clearToken, getUsername, getLastProfile, setLastProfile } from './lib/auth';
-import { writeDb, loginWithToken, EMPTY_PROFILE, EMPTY_SETTINGS } from './lib/github-db';
+import { writeDb, loginWithToken, recomputeGlobalModalCascade, EMPTY_PROFILE, EMPTY_SETTINGS } from './lib/github-db';
 import type { GistData, ProfileData, ProfileSettings } from './lib/github-db';
 import { sendTelegram, buildEntryMessage, buildPayoutMessage } from './lib/telegram';
 import Login from './components/Login';
@@ -140,7 +140,7 @@ export default function App() {
       const prev = currentGist.profiles[profile];
       const prevSettings = prev?.settings;
       const prevPayouts = prev?.payouts;
-      const updated: GistData = {
+      const draft: GistData = {
         ...currentGist,
         profiles: {
           ...currentGist.profiles,
@@ -154,7 +154,15 @@ export default function App() {
         },
         version: Date.now(),
       };
+      // Re-apply shared-pool allocation so every account's modal stays in
+      // sync with the latest spend totals across all accounts.
+      const updated = recomputeGlobalModalCascade(draft);
       setGistData(updated);
+      // Sync local goals state if the active profile's modal changed.
+      const refreshed = updated.profiles[profile]?.goals;
+      if (refreshed && refreshed.modal !== gls.modal) {
+        setGoals(refreshed);
+      }
       await writeDb(updated);
       setSyncStatus('ok');
       setTimeout(() => setSyncStatus('idle'), 2000);

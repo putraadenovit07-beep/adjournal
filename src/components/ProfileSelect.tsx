@@ -197,14 +197,23 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
   }
 
   function calcCascade(totalIdr: number): Record<string, number> {
+    // Shared-pool model: every account's modal reflects what's left of the
+    // pool when ONLY the OTHER accounts' spend is subtracted. That way each
+    // account's "sisa" (modal - own spend) equals total_pool - total_spend,
+    // matching the actual remaining balance shown by the ad provider.
     const result: Record<string, number> = {};
-    let remaining = totalIdr;
-    // Only iterate over profiles that actually exist, in the chosen order.
+    const spendByProfile: Record<string, number> = {};
+    let totalSpend = 0;
     for (const pName of gmOrder) {
       if (!gistData.profiles[pName]) continue;
-      result[pName] = Math.max(0, remaining);
-      const pSpend = (gistData.profiles[pName]?.entries || []).reduce((s, e) => s + (e.spend || 0), 0);
-      remaining = Math.max(0, remaining - pSpend);
+      const s = (gistData.profiles[pName]?.entries || []).reduce((sum, e) => sum + (e.spend || 0), 0);
+      spendByProfile[pName] = s;
+      totalSpend += s;
+    }
+    for (const pName of gmOrder) {
+      if (!gistData.profiles[pName]) continue;
+      const otherSpend = totalSpend - (spendByProfile[pName] || 0);
+      result[pName] = Math.max(0, totalIdr - otherSpend);
     }
     return result;
   }
@@ -463,7 +472,7 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                       <label className="profile-settings-row" style={{ marginBottom: 10 }}>
                         <div className="profile-settings-row-info">
                           <div className="profile-settings-row-name">Aktifkan Mode Keseluruhan</div>
-                          <div className="profile-settings-row-desc">Modal dibagi otomatis ke semua akun secara cascade</div>
+                          <div className="profile-settings-row-desc">Semua akun berbagi 1 pool topup. Sisa modal di tiap akun = total topup − total spend semua akun (mirip saldo di dao.ad)</div>
                         </div>
                         <span className={`profile-toggle ${gmEnabled ? 'on' : ''}`} onClick={() => setGmEnabled(v => !v)}>
                           <span className="profile-toggle-knob" />
@@ -502,7 +511,7 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                       </div>
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                          Urutan Cascade (▲▼ untuk ubah)
+                          Urutan Tampilan Akun (▲▼ untuk ubah)
                         </div>
                         {gmOrder.map((pName, idx) => {
                           const pData = gistData.profiles[pName];
@@ -768,7 +777,7 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--a)', marginBottom: 2 }}>Mode Modal Keseluruhan Aktif</div>
               <div style={{ fontSize: 11, color: 'var(--t3)', lineHeight: 1.5 }}>
-                Modal dibagi otomatis ke semua akun secara <em>cascade</em>. Untuk mengubah, buka ⚙️ Pengaturan di salah satu akun → tab Keseluruhan Akun.
+                Semua akun berbagi 1 pool topup. Sisa modal di tiap akun otomatis update setiap ada entri baru. Untuk mengubah, buka ⚙️ Pengaturan di salah satu akun → tab Keseluruhan Akun.
               </div>
             </div>
           </div>

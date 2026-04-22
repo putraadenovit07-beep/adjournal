@@ -48,6 +48,46 @@ export const EMPTY_SETTINGS: ProfileSettings = {
   telegramChatId: '',
 };
 
+/**
+ * Recompute each profile's modal under the global "shared pool" mode.
+ * All accounts share the same topup pool; each account's modal reflects
+ * total_pool - sum(spend of OTHER accounts), so its sisa (modal - own_spend)
+ * equals total_pool - total_spend across all accounts. This matches the
+ * actual remaining balance shown by the ad provider (e.g. dao.ad).
+ *
+ * Returns a new GistData with profiles' goals.modal updated. If global
+ * modal is disabled or absent, the gist is returned unchanged.
+ */
+export function recomputeGlobalModalCascade(gist: GistData): GistData {
+  const gm = gist.globalModal;
+  if (!gm?.enabled || !gm.amount) return gist;
+
+  const total = gm.amount;
+  const profileNames = Object.keys(gist.profiles);
+
+  const spendByProfile: Record<string, number> = {};
+  let totalSpend = 0;
+  for (const name of profileNames) {
+    const s = (gist.profiles[name]?.entries || []).reduce((acc, e) => acc + (e.spend || 0), 0);
+    spendByProfile[name] = s;
+    totalSpend += s;
+  }
+
+  const updatedProfiles = { ...gist.profiles };
+  for (const name of profileNames) {
+    const otherSpend = totalSpend - spendByProfile[name];
+    const myModal = Math.max(0, total - otherSpend);
+    const existing = updatedProfiles[name];
+    if (!existing) continue;
+    updatedProfiles[name] = {
+      ...existing,
+      goals: { ...existing.goals, modal: myModal },
+    };
+  }
+
+  return { ...gist, profiles: updatedProfiles };
+}
+
 export const EMPTY_PROFILE: ProfileData = {
   campaigns: [],
   entries: [],
