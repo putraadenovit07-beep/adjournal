@@ -281,12 +281,12 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                     <div className="profile-card-name">{name}</div>
                     <div className="profile-card-meta">
                       {cpCount} campaign · {entryCount} entri
-                      {ms && (
-                        <span style={{ color: ms.tercapai ? 'var(--g)' : 'var(--a)', fontWeight: 600, marginLeft: 4 }}>
-                          · Sisa: {ms.tercapai ? '✓ BEP' : fRp(ms.sisa)}
-                        </span>
-                      )}
                     </div>
+                    {ms && (
+                      <div style={{ fontSize: 11, fontWeight: 700, color: ms.tercapai ? 'var(--g)' : 'var(--a)', marginTop: 2 }}>
+                        Sisa Modal: {ms.tercapai ? '✓ BEP Tercapai' : fRp(ms.sisa)}
+                      </div>
+                    )}
                   </div>
                   <svg className="profile-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
@@ -628,6 +628,18 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           Ganti Token / Keluar
         </button>
+
+        {gistData.globalModal?.enabled && (
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,170,0,0.07)', border: '1px solid rgba(255,170,0,0.28)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--a)', marginBottom: 2 }}>Mode Modal Keseluruhan Aktif</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)', lineHeight: 1.5 }}>
+                Modal dibagi otomatis ke semua akun secara <em>cascade</em>. Untuk mengubah, buka ⚙️ Pengaturan di salah satu akun → tab Keseluruhan Akun.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
