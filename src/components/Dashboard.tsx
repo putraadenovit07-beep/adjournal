@@ -82,11 +82,6 @@ function DeltaCard({ label, value, prevValue, delta: d, isMoney, invertColor, co
 export default function Dashboard({ campaigns, entries, goals, payouts, settings, onGoTo }: Props) {
   const hideModalAwal = !!settings?.hideModalAwal;
   const poList = payouts || [];
-  const totPoPending = poList.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0);
-  const totPoSukses = poList.filter(p => p.status === 'sukses').reduce((s, p) => s + (p.amount || 0), 0);
-  const cntPoPending = poList.filter(p => p.status === 'pending').length;
-  const cntPoSukses = poList.filter(p => p.status === 'sukses').length;
-  const nextPending = [...poList].filter(p => p.status === 'pending').sort((a, b) => (a.date || '').localeCompare(b.date || ''))[0];
   const totalSpend = entries.reduce((s, e) => s + (e.spend || 0), 0);
   const totalRevenue = entries.reduce((s, e) => s + (e.revenue || 0), 0);
   const netProfit = totalRevenue - totalSpend;
@@ -117,19 +112,17 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
         const canProject = !sudahBalik && avgDaily > 0;
         const daysToBEP = canProject ? Math.ceil(sisaBEP / avgDaily) : null;
         const etaDate = daysToBEP !== null ? addDaysIso(today, daysToBEP) : null;
-        const etaTxt = sudahBalik ? '✓ Tercapai' : !canProject ? '— hari' : `${daysToBEP} hari`;
         return (
-          <div className={`bep-compact ${sudahBalik ? 'done' : 'progress'}`} onClick={() => onGoTo('analytics')}>
-            <div className="bep-compact-row">
+          <div className={`bep-compact ${sudahBalik ? 'done' : 'progress'}`} onClick={() => onGoTo('modal')}>
+            <div className="bep-compact-row" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
               <div className="bep-compact-cell">
                 <span className="bep-compact-lbl">Modal Awal</span>
                 <span className="bep-compact-val" style={{ color: 'var(--p)' }}>{fRp(modalNum)}</span>
               </div>
               <div className="bep-compact-cell">
-                <span className="bep-compact-lbl">Estimasi Balik Modal</span>
-                <span className="bep-compact-val" style={{ color: sudahBalik ? 'var(--g)' : canProject ? 'var(--tc)' : 'var(--t3)' }}>
-                  {etaTxt}
-                </span>
+                <span className="bep-compact-lbl">Terpakai</span>
+                <span className="bep-compact-val" style={{ color: 'var(--r)' }}>{fRp(totalSpend)}</span>
+                <span className="bep-compact-sub">{pctBalik.toFixed(1)}% tercapai</span>
               </div>
               <div className="bep-compact-cell">
                 <span className="bep-compact-lbl">Profit Harian (rata-rata)</span>
@@ -143,6 +136,10 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
                 <span className="bep-compact-val" style={{ color: sudahBalik ? 'var(--g)' : 'var(--a)' }}>
                   {sudahBalik ? 'Rp 0' : fRp(sisaBEP)}
                 </span>
+                {canProject && daysToBEP !== null && (
+                  <span className="bep-compact-sub">~{daysToBEP} hari</span>
+                )}
+                {sudahBalik && <span className="bep-compact-sub" style={{ color: 'var(--g)' }}>✓ BEP tercapai</span>}
               </div>
             </div>
             <div className="bep-compact-bar-wrap">
@@ -171,7 +168,7 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
         </div>
       ))}
 
-      {/* Hari Ini vs Kemarin - Adsense style */}
+      {/* Hari Ini vs Kemarin */}
       <div className="card">
         <div className="card-h">
           <span className="card-h-title">Performa Hari Ini</span>
@@ -185,44 +182,16 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
             </div>
           ) : (
             <div className="day-grid">
-              <DeltaCard
-                label="Profit Bersih Hari Ini"
-                value={fRp(td.profit)}
-                prevValue={fRp(yd.profit)}
-                delta={delta(td.profit, yd.profit)}
-                isMoney
-                color={td.profit >= 0 ? 'var(--g)' : 'var(--r)'}
-              />
-              <DeltaCard
-                label="Penghasilan Adsense Hari Ini"
-                value={fRp(td.revenue)}
-                prevValue={fRp(yd.revenue)}
-                delta={delta(td.revenue, yd.revenue)}
-                isMoney
-                color="var(--g)"
-              />
-              <DeltaCard
-                label="Spend Iklan Hari Ini"
-                value={fRp(td.spend)}
-                prevValue={fRp(yd.spend)}
-                delta={delta(td.spend, yd.spend)}
-                isMoney
-                invertColor
-                color="var(--r)"
-              />
-              <DeltaCard
-                label="Klik Iklan Hari Ini"
-                value={fN(td.clicks)}
-                prevValue={fN(yd.clicks)}
-                delta={delta(td.clicks, yd.clicks)}
-                color="var(--b)"
-              />
+              <DeltaCard label="Profit Bersih Hari Ini" value={fRp(td.profit)} prevValue={fRp(yd.profit)} delta={delta(td.profit, yd.profit)} isMoney color={td.profit >= 0 ? 'var(--g)' : 'var(--r)'} />
+              <DeltaCard label="Penghasilan Adsense Hari Ini" value={fRp(td.revenue)} prevValue={fRp(yd.revenue)} delta={delta(td.revenue, yd.revenue)} isMoney color="var(--g)" />
+              <DeltaCard label="Spend Iklan Hari Ini" value={fRp(td.spend)} prevValue={fRp(yd.spend)} delta={delta(td.spend, yd.spend)} isMoney invertColor color="var(--r)" />
+              <DeltaCard label="Klik Iklan Hari Ini" value={fN(td.clicks)} prevValue={fN(yd.clicks)} delta={delta(td.clicks, yd.clicks)} color="var(--b)" />
             </div>
           )}
         </div>
       </div>
 
-      {/* Mosaic Total Stats - hero profit + side stats */}
+      {/* Mosaic Total Stats */}
       <div className="mosaic-stats">
         <div className={`mosaic-hero ${netProfit >= 0 ? 'pos' : 'neg'}`}>
           <div className="mosaic-hero-grid">
@@ -233,7 +202,7 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
                   ROI {roi >= 0 ? '+' : ''}{roi.toFixed(2)}%
                 </span>
               </div>
-              <div className="mosaic-hero-val" style={{ color: netColor }}>
+              <div className="mosaic-hero-val" style={{ color: netColor, whiteSpace: 'normal', overflow: 'visible', wordBreak: 'break-word', fontSize: 'clamp(22px, 7vw, 42px)' }}>
                 {netProfit >= 0 ? '+' : ''}{fRp(netProfit)}
               </div>
               <div className="mosaic-hero-foot">
