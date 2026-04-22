@@ -281,19 +281,18 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
           <div className="mosaic-mini po-mini" onClick={() => onGoTo('modal')} title="Kelola payout">
             <div className="mosaic-mini-bar" style={{ background: 'var(--tc)' }} />
             <div className="mosaic-mini-body po-mini-body">
-              <span className="mosaic-mini-label">Payout Adsense</span>
+              <span className="mosaic-mini-label">Payout Adsense Terbaru</span>
               {(() => {
-                // Show: nominal + status + date of latest/most-relevant payout
-                const featured = nextPending || [...poList].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+                const featured = [...poList].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
                 if (!featured) return <span className="po-mini-empty">+ Tambah payout</span>;
                 const isSukses = featured.status === 'sukses';
                 return (
-                  <div className="po-feature">
+                  <div className="po-feature-inline">
                     <span className="po-feature-amt" style={{ color: isSukses ? 'var(--g)' : 'var(--a)' }}>{fRp(featured.amount)}</span>
-                    <div className="po-feature-meta">
-                      <span className={`po-mini-pill ${isSukses ? 'sukses' : 'pending'}`}>{isSukses ? '✓ Sukses' : '⏳ Pending'}</span>
-                      <span className="po-feature-date">{featured.date}</span>
-                    </div>
+                    <span className="po-feature-sep">|</span>
+                    <span className={`po-mini-pill ${isSukses ? 'sukses' : 'pending'}`}>{isSukses ? '✓ Sukses' : '⏳ Pending'}</span>
+                    <span className="po-feature-sep">|</span>
+                    <span className="po-feature-date">{featured.date}</span>
                   </div>
                 );
               })()}

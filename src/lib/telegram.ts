@@ -102,12 +102,8 @@ export function buildPayoutMessage(opts: {
   const title = kind === 'pending-to-sukses'
     ? '✅ *Payout CAIR\\!*'
     : '💵 *Payout Sukses Tercatat*';
-  const subtitle = kind === 'pending-to-sukses'
-    ? '_Status diubah dari Pending → Sukses_'
-    : '_Payout baru ditambahkan dengan status Sukses_';
   const lines = [
     title,
-    subtitle,
     '',
     `👤 Akun: *${escapeMd(profileName)}*`,
     `📅 Tanggal PO: \`${escapeMd(payout.date)}\``,
