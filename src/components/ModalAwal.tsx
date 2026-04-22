@@ -19,9 +19,6 @@ export default function ModalAwalPage({ goals, entries, payouts, onSavePayouts }
   const totalRevenue = entries.reduce((s, e) => s + (e.revenue || 0), 0);
   const netProfit = totalRevenue - totalSpend;
   const modalNum = goals.modal || 0;
-  const pctBalik = modalNum > 0 ? Math.min(100, Math.max(0, (netProfit / modalNum) * 100)) : 0;
-  const sisaBEP = Math.max(0, modalNum - netProfit);
-  const sudahBalik = modalNum > 0 && netProfit >= modalNum;
 
   // Payout state
   const [poEditId, setPoEditId] = useState<number | null>(null);
@@ -102,20 +99,7 @@ export default function ModalAwalPage({ goals, entries, payouts, onSavePayouts }
         </div>
       </div>
 
-      {/* BEP Status */}
-      {modalNum > 0 && (
-        <div className="card">
-          <div className="card-h">
-            <span className="card-h-title">Status Balik Modal</span>
-            <span className="card-h-tag" style={{ color: sudahBalik ? 'var(--g)' : 'var(--a)' }}>
-              {sudahBalik ? '✓ BEP Tercapai' : 'Belum BEP'}
-            </span>
-          </div>
-          <div className="card-b">
-            <div className="modal-bar">
-              <div className="modal-bar-item">
-                <span className="modal-bar-label">Modal Awal</span>
-                <span className="modal-bar-val" style={{ color: 'var(--p)' }}>{fRp(modalNum)}</span>
+      </span>
               </div>
               <div className="modal-bar-item">
                 <span className="modal-bar-label">Terpakai</span>
