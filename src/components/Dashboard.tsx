@@ -225,18 +225,40 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
       {/* Mosaic Total Stats - hero profit + side stats */}
       <div className="mosaic-stats">
         <div className={`mosaic-hero ${netProfit >= 0 ? 'pos' : 'neg'}`}>
-          <div className="mosaic-hero-top">
-            <span className="mosaic-hero-label">Profit Bersih Keseluruhan</span>
-            <span className={`mosaic-hero-roi ${roi >= 0 ? 'pos' : 'neg'}`}>
-              ROI {roi >= 0 ? '+' : ''}{roi.toFixed(2)}%
-            </span>
-          </div>
-          <div className="mosaic-hero-val" style={{ color: netColor }}>
-            {netProfit >= 0 ? '+' : ''}{fRp(netProfit)}
-          </div>
-          <div className="mosaic-hero-foot">
-            <span className="mosaic-hero-dot" style={{ background: netColor }} />
-            {entries.length} entri tercatat · {campaigns.length} kampanye
+          <div className="mosaic-hero-grid">
+            <div className="mosaic-hero-main">
+              <div className="mosaic-hero-top">
+                <span className="mosaic-hero-label">Profit Bersih Keseluruhan</span>
+                <span className={`mosaic-hero-roi ${roi >= 0 ? 'pos' : 'neg'}`}>
+                  ROI {roi >= 0 ? '+' : ''}{roi.toFixed(2)}%
+                </span>
+              </div>
+              <div className="mosaic-hero-val" style={{ color: netColor }}>
+                {netProfit >= 0 ? '+' : ''}{fRp(netProfit)}
+              </div>
+              <div className="mosaic-hero-foot">
+                <span className="mosaic-hero-dot" style={{ background: netColor }} />
+                {entries.length} entri tercatat · {campaigns.length} kampanye
+              </div>
+            </div>
+            <div className="mosaic-hero-aside">
+              <div className="hero-aside-row">
+                <span className="hero-aside-lbl">💰 Penghasilan</span>
+                <span className="hero-aside-val pos">{fRp(totalRevenue)}</span>
+              </div>
+              <div className="hero-aside-row">
+                <span className="hero-aside-lbl">💸 Spend</span>
+                <span className="hero-aside-val neg">{fRp(totalSpend)}</span>
+              </div>
+              <div className="hero-aside-row">
+                <span className="hero-aside-lbl">📊 Margin</span>
+                <span className="hero-aside-val">{totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0.0'}%</span>
+              </div>
+              <div className="hero-aside-row">
+                <span className="hero-aside-lbl">💵 Payout Cair</span>
+                <span className="hero-aside-val">{fRp(totPoSukses)}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="mosaic-side">
@@ -259,36 +281,22 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
           <div className="mosaic-mini po-mini" onClick={() => onGoTo('modal')} title="Kelola payout">
             <div className="mosaic-mini-bar" style={{ background: 'var(--tc)' }} />
             <div className="mosaic-mini-body po-mini-body">
-              <div className="po-mini-head">
-                <span className="mosaic-mini-label">Payout Adsense</span>
-                <span className="po-mini-pills">
-                  {cntPoPending > 0 && <span className="po-mini-pill pending">{cntPoPending} pending</span>}
-                  {cntPoSukses > 0 && <span className="po-mini-pill sukses">{cntPoSukses} sukses</span>}
-                </span>
-              </div>
-              {poList.length === 0 ? (
-                <span className="po-mini-empty">+ Tambah payout</span>
-              ) : (
-                <>
-                  <div className="po-mini-rows">
-                    <div className="po-mini-row">
-                      <span className="po-mini-row-lbl">⏳ Pending</span>
-                      <span className="po-mini-row-val" style={{ color: 'var(--a)' }}>{fRp(totPoPending)}</span>
-                    </div>
-                    <div className="po-mini-row">
-                      <span className="po-mini-row-lbl">✓ Sukses</span>
-                      <span className="po-mini-row-val" style={{ color: 'var(--g)' }}>{fRp(totPoSukses)}</span>
+              <span className="mosaic-mini-label">Payout Adsense</span>
+              {(() => {
+                // Show: nominal + status + date of latest/most-relevant payout
+                const featured = nextPending || [...poList].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+                if (!featured) return <span className="po-mini-empty">+ Tambah payout</span>;
+                const isSukses = featured.status === 'sukses';
+                return (
+                  <div className="po-feature">
+                    <span className="po-feature-amt" style={{ color: isSukses ? 'var(--g)' : 'var(--a)' }}>{fRp(featured.amount)}</span>
+                    <div className="po-feature-meta">
+                      <span className={`po-mini-pill ${isSukses ? 'sukses' : 'pending'}`}>{isSukses ? '✓ Sukses' : '⏳ Pending'}</span>
+                      <span className="po-feature-date">{featured.date}</span>
                     </div>
                   </div>
-                  {nextPending && (
-                    <div className="po-mini-next" title={`Payout pending berikutnya: ${nextPending.date} · ${fRp(nextPending.amount)}${nextPending.bankName ? ' → ' + nextPending.bankName : ''}`}>
-                      <span className="po-mini-next-lbl">Berikut:</span>
-                      <strong>{nextPending.date}</strong>
-                      <span className="po-mini-next-amt">{fRp(nextPending.amount)}</span>
-                    </div>
-                  )}
-                </>
-              )}
+                );
+              })()}
             </div>
             <span className="mosaic-mini-icon" style={{ color: 'var(--tc)' }}>→</span>
           </div>

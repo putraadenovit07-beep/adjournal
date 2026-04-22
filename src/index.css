@@ -877,15 +877,43 @@ select option{background-color:#1a1a26;color:#f4f4f8}
 .po-mini-pill.pending{background:rgba(255,170,0,0.18);color:var(--a);border:1px solid rgba(255,170,0,0.4)}
 .po-mini-pill.sukses{background:rgba(0,217,139,0.16);color:var(--g);border:1px solid rgba(0,217,139,0.36)}
 .po-mini-empty{font-size:12px;color:var(--p);font-weight:600;margin-top:2px}
-.po-mini-rows{display:flex;flex-direction:column;gap:3px;margin-top:2px}
-.po-mini-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.po-mini-row-lbl{font-size:10.5px;color:var(--t3);font-weight:500}
-.po-mini-row-val{font-size:12.5px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-0.2px}
-.po-mini-next{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--t3);margin-top:4px;padding-top:6px;border-top:1px dashed var(--brd);line-height:1.3;white-space:nowrap;overflow:hidden}
-.po-mini-next-lbl{flex-shrink:0}
-.po-mini-next strong{color:var(--t1);font-weight:600;flex-shrink:0;font-size:10.5px}
-.po-mini-next-amt{margin-left:auto;font-weight:700;color:var(--a);font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis}
-[data-theme="adsense"] .po-mini-next-amt{color:#e37400 !important;font-family:'Google Sans','Roboto',sans-serif !important}
+.po-feature{display:flex;flex-direction:column;gap:6px;margin-top:4px;min-width:0}
+.po-feature-amt{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.5px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.po-feature-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.po-feature-date{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;font-weight:600}
+[data-theme="adsense"] .po-feature-amt{font-family:'Google Sans','Roboto',sans-serif !important}
+[data-theme="adsense"] .po-feature-date{color:#5f6368 !important;font-family:'Google Sans','Roboto',sans-serif !important}
+
+/* Hero card 2-column layout */
+.mosaic-hero-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:center;position:relative;z-index:1;height:100%}
+.mosaic-hero-main{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.mosaic-hero-aside{display:flex;flex-direction:column;gap:8px;padding-left:16px;border-left:1px solid rgba(255,255,255,0.18);min-width:0}
+.hero-aside-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px}
+.hero-aside-lbl{color:rgba(255,255,255,0.78);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-aside-val{font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;letter-spacing:-0.3px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-aside-val.pos{color:#a7f3d0}
+.hero-aside-val.neg{color:#fecaca}
+@media (max-width:760px){
+  .mosaic-hero-grid{grid-template-columns:1fr;gap:14px}
+  .mosaic-hero-aside{padding-left:0;border-left:none;padding-top:14px;border-top:1px solid rgba(255,255,255,0.18);flex-direction:row;flex-wrap:wrap;justify-content:space-between}
+  .hero-aside-row{flex-direction:column;align-items:flex-start;gap:2px;font-size:10.5px;flex:1 1 calc(50% - 6px);min-width:0}
+}
+[data-theme="adsense"] .mosaic-hero-aside{border-left-color:rgba(255,255,255,0.28)}
+[data-theme="adsense"] .hero-aside-lbl{color:rgba(255,255,255,0.85) !important}
+[data-theme="adsense"] .hero-aside-val{color:#fff !important;font-family:'Google Sans','Roboto',sans-serif !important}
+[data-theme="adsense"] .hero-aside-val.pos{color:#bbf7d0 !important}
+[data-theme="adsense"] .hero-aside-val.neg{color:#fecaca !important}
+
+/* Telegram Chat ID auto-detect */
+.tg-label-hint{font-size:10px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px}
+.tg-chatid-row{display:flex;gap:6px;align-items:stretch}
+.tg-chatid-row input{flex:1;min-width:0}
+.tg-fetch-btn{flex-shrink:0;padding:0 12px;border-radius:8px;border:1px solid var(--brd);background:var(--p);color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.tg-fetch-btn:hover:not(:disabled){opacity:0.9}
+.tg-fetch-btn:disabled{opacity:0.5;cursor:not-allowed}
+.tg-help code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px}
+[data-theme="adsense"] .tg-fetch-btn{background:#1a73e8;border-color:#1a73e8}
+[data-theme="adsense"] .tg-help code{background:#f1f3f4;color:#1a73e8}
 
 /* Adsense tema overrides */
 [data-theme="adsense"] .po-mini-pill.pending{background:#fef7e0;color:#e37400;border-color:#feefc3}
@@ -926,7 +954,7 @@ select option{background-color:#1a1a26;color:#f4f4f8}
 /* Adjust mosaic-stats grid: hero now next to taller side column (3 mini cards).
    Make hero a bit taller / center its content for visual balance. */
 .mosaic-stats .mosaic-side{display:flex;flex-direction:column;gap:10px}
-.mosaic-hero{display:flex;flex-direction:column;justify-content:center}
+.mosaic-hero{display:block}
 @media (min-width: 720px){
   .mosaic-stats{grid-template-columns:1.05fr 1fr}
 }

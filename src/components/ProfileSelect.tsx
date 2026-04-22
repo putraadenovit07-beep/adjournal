@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { GistData, ProfileData, ProfileSettings, ThemeName } from '../lib/github-db';
 import { EMPTY_PROFILE, EMPTY_SETTINGS } from '../lib/github-db';
-import { testTelegram } from '../lib/telegram';
+import { testTelegram, fetchChatIdFromBot } from '../lib/telegram';
 
 interface Props {
   username: string;
@@ -36,6 +36,7 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
   const [draftSettings, setDraftSettings] = useState<ProfileSettings>({ ...EMPTY_SETTINGS });
   const [tgTesting, setTgTesting] = useState(false);
   const [tgResult, setTgResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [tgFetching, setTgFetching] = useState(false);
 
   async function handleTestTelegram() {
     if (!settingsFor) return;
@@ -43,6 +44,18 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
     const r = await testTelegram(draftSettings, settingsFor);
     setTgResult({ ok: r.ok, msg: r.ok ? 'Berhasil! Cek Telegram kamu.' : (r.error || 'Gagal kirim') });
     setTgTesting(false);
+  }
+
+  async function handleFetchChatId() {
+    setTgFetching(true); setTgResult(null);
+    const r = await fetchChatIdFromBot(draftSettings.telegramBotToken || '');
+    if (r.ok && r.chatId) {
+      setDraftSettings(s => ({ ...s, telegramChatId: r.chatId! }));
+      setTgResult({ ok: true, msg: `Chat ID terisi otomatis: ${r.chatId}${r.chatTitle ? ' (' + r.chatTitle + ')' : ''}` });
+    } else {
+      setTgResult({ ok: false, msg: r.error || 'Gagal ambil chat ID' });
+    }
+    setTgFetching(false);
   }
 
   function openSettings(name: string) {
@@ -294,16 +307,21 @@ export default function ProfileSelect({ username, gistData, onSelect, onLogout, 
                         />
                       </div>
                       <div className="fg">
-                        <label>Chat ID</label>
-                        <input
-                          type="text"
-                          placeholder="-1001234567890 atau 12345678"
-                          value={draftSettings.telegramChatId || ''}
-                          onChange={e => { setDraftSettings(s => ({ ...s, telegramChatId: e.target.value })); setTgResult(null); }}
-                        />
+                        <label>Chat ID <span className="tg-label-hint">(angka, bukan token)</span></label>
+                        <div className="tg-chatid-row">
+                          <input
+                            type="text"
+                            placeholder="contoh: 123456789 atau -1001234567890"
+                            value={draftSettings.telegramChatId || ''}
+                            onChange={e => { setDraftSettings(s => ({ ...s, telegramChatId: e.target.value })); setTgResult(null); }}
+                          />
+                          <button type="button" className="tg-fetch-btn" onClick={handleFetchChatId} disabled={tgFetching} title="Auto-isi dari bot">
+                            {tgFetching ? '...' : '🔍 Auto'}
+                          </button>
+                        </div>
                       </div>
                       <div className="tg-help">
-                        Buat bot via <strong>@BotFather</strong> untuk dapat token, lalu kirim /start ke bot &amp; cek <strong>@userinfobot</strong> untuk Chat ID.
+                        <strong>Cara pakai auto-detect:</strong> 1) Buat bot via <strong>@BotFather</strong> & paste token di atas. 2) Buka chat bot di Telegram, kirim <code>/start</code>. 3) Klik tombol <strong>🔍 Auto</strong> — Chat ID terisi otomatis.
                       </div>
                       <button type="button" className="tg-test-btn" onClick={handleTestTelegram} disabled={tgTesting}>
                         {tgTesting ? 'Mengirim...' : 'Tes Kirim Pesan'}

@@ -130,6 +130,39 @@ export function buildPayoutMessage(opts: {
   return lines.join('\n');
 }
 
+export async function fetchChatIdFromBot(botToken: string): Promise<{ ok: boolean; chatId?: string; chatTitle?: string; error?: string }> {
+  const token = (botToken || '').trim();
+  if (!token) return { ok: false, error: 'Bot token wajib diisi dulu' };
+  if (!/^\d+:[A-Za-z0-9_-]+$/.test(token)) {
+    return { ok: false, error: 'Format token salah (harus: angka:huruf, contoh 123456:ABC...)' };
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates`, { method: 'GET' });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({} as any));
+      return { ok: false, error: j.description || `HTTP ${res.status} — token salah?` };
+    }
+    const j = await res.json();
+    if (!j.ok) return { ok: false, error: j.description || 'API error' };
+    const updates: any[] = j.result || [];
+    if (updates.length === 0) {
+      return { ok: false, error: 'Belum ada pesan ke bot. Buka chat bot di Telegram & kirim /start dulu, lalu coba lagi.' };
+    }
+    // Take the most recent message's chat
+    for (let i = updates.length - 1; i >= 0; i--) {
+      const u = updates[i];
+      const chat = u.message?.chat || u.channel_post?.chat || u.edited_message?.chat;
+      if (chat?.id) {
+        const title = chat.title || chat.username || [chat.first_name, chat.last_name].filter(Boolean).join(' ') || 'Chat';
+        return { ok: true, chatId: String(chat.id), chatTitle: title };
+      }
+    }
+    return { ok: false, error: 'Tidak menemukan chat di update terbaru. Kirim /start ke bot dulu.' };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message + ' — pastikan token valid & koneksi internet aktif' };
+  }
+}
+
 export async function testTelegram(settings: ProfileSettings, profileName: string): Promise<{ ok: boolean; error?: string }> {
   const token = (settings.telegramBotToken || '').trim();
   const chatId = (settings.telegramChatId || '').trim();
