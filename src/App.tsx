@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import './index.css';
 import type { Campaign, Entry, Goals, Payout } from './lib/storage';
-import { formatDate } from './lib/helpers';
+import { formatDate, fRp } from './lib/helpers';
 import { getToken, clearToken, getUsername, getLastProfile, setLastProfile } from './lib/auth';
 import { writeDb, loginWithToken, recomputeGlobalModalCascade, EMPTY_PROFILE, EMPTY_SETTINGS } from './lib/github-db';
 import type { GistData, ProfileData, ProfileSettings } from './lib/github-db';
@@ -361,7 +361,17 @@ export default function App() {
         </div>
       </div>
 
-      {page === 'dashboard' && <Dashboard campaigns={campaigns} entries={entries} goals={goals} payouts={payouts} settings={settings} onGoTo={goTo} />}
+      {page === 'dashboard' && <Dashboard campaigns={campaigns} entries={entries} goals={goals} payouts={payouts} settings={settings} modalNote={(() => {
+        const gm = gistData?.globalModal;
+        if (!gm?.enabled || !gm.amount || !activeProfile) return undefined;
+        const others = Object.entries(gistData!.profiles)
+          .filter(([n]) => n !== activeProfile)
+          .map(([n, p]) => ({ name: n, spend: (p.entries || []).reduce((s, e) => s + (e.spend || 0), 0) }))
+          .filter(o => o.spend > 0);
+        if (others.length === 0) return `Saldo total ${fRp(gm.amount)}`;
+        const parts = others.map(o => `${fRp(o.spend)} (${o.name})`).join(' − ');
+        return `${fRp(gm.amount)} − ${parts}`;
+      })()} onGoTo={goTo} />}
       {page === 'campaigns' && <Campaigns campaigns={campaigns} entries={entries} onAdd={addCampaign} onDelete={deleteCampaign} onQuickCatat={handleQuickCatat} />}
       {page === 'entry' && (
         <EntryForm campaigns={campaigns} editEntry={editEntry} prefillCampaignId={prefillCampaignId} onSave={handleSaveEntry} onCancel={handleCancelEdit} onGoToCampaigns={() => goTo('campaigns')} />

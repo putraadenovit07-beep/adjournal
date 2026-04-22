@@ -8,6 +8,7 @@ interface Props {
   goals: Goals;
   payouts?: Payout[];
   settings?: ProfileSettings;
+  modalNote?: string;
   onGoTo: (page: string) => void;
 }
 
@@ -79,7 +80,7 @@ function DeltaCard({ label, value, prevValue, delta: d, isMoney, invertColor, co
   );
 }
 
-export default function Dashboard({ campaigns, entries, goals, payouts, settings, onGoTo }: Props) {
+export default function Dashboard({ campaigns, entries, goals, payouts, settings, modalNote, onGoTo }: Props) {
   const hideModalAwal = !!settings?.hideModalAwal;
   const poList = payouts || [];
   const totalSpend = entries.reduce((s, e) => s + (e.spend || 0), 0);
@@ -118,6 +119,7 @@ export default function Dashboard({ campaigns, entries, goals, payouts, settings
               <div className="bep-compact-cell">
                 <span className="bep-compact-lbl">Modal Awal</span>
                 <span className="bep-compact-val" style={{ color: 'var(--p)' }}>{fRp(modalNum)}</span>
+                {modalNote && <span className="bep-compact-sub">{modalNote}</span>}
               </div>
               <div className="bep-compact-cell">
                 <span className="bep-compact-lbl">Terpakai</span>
