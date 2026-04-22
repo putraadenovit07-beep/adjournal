@@ -23,9 +23,18 @@ export interface ProfileData {
   payouts?: Payout[];
 }
 
+export interface GlobalModalConfig {
+  enabled: boolean;
+  amount: number;
+  currency: 'idr' | 'usd';
+  usdAmount?: number;
+  profileOrder: string[];
+}
+
 export interface GistData {
   profiles: Record<string, ProfileData>;
   version: number;
+  globalModal?: GlobalModalConfig;
 }
 
 const EMPTY_GOALS: Goals = { modal: 0, start: '', milestones: [], locked: false };
@@ -77,7 +86,6 @@ async function fetchGist(gistId: string): Promise<GistData | null> {
     const file = json.files?.[GIST_FILENAME];
     if (!file?.content) return null;
     const parsed = JSON.parse(file.content);
-    // Migrate old format (single profile) to new multi-profile format
     if (parsed.campaigns && !parsed.profiles) {
       return {
         profiles: {
@@ -116,7 +124,6 @@ export async function initDb(): Promise<GistData> {
     if (data) return data;
   }
 
-  // Search existing gist
   try {
     const res = await fetch('https://api.github.com/gists?per_page=30', { headers: headers() });
     if (res.ok) {
