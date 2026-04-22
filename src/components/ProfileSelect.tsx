@@ -40,6 +40,21 @@ function profileSisaModal(gistData: GistData, name: string) {
   const totalSpend = (p.entries || []).reduce((s, e) => s + (e.spend || 0), 0);
   const totalRevenue = (p.entries || []).reduce((s, e) => s + (e.revenue || 0), 0);
   const netProfit = totalRevenue - totalSpend;
+
+  // In shared-pool mode, sisa = total_pool - total_spend across all accounts
+  // (matches the actual ad-provider balance, e.g. dao.ad). Identical for
+  // every account because it represents the same shared pool.
+  const gm = gistData.globalModal;
+  if (gm?.enabled && gm.amount > 0) {
+    const allSpend = Object.values(gistData.profiles).reduce(
+      (sum, prof) => sum + (prof.entries || []).reduce((s, e) => s + (e.spend || 0), 0),
+      0,
+    );
+    const sharedSisa = Math.max(0, gm.amount - allSpend);
+    const tercapai = sharedSisa <= 0;
+    return { modal: gm.amount, sisa: sharedSisa, tercapai, netProfit, totalSpend };
+  }
+
   const sisa = Math.max(0, modal - netProfit);
   const tercapai = netProfit >= modal;
   return { modal, sisa, tercapai, netProfit, totalSpend };
